@@ -1,0 +1,80 @@
+---
+- name: Setup GitLab Runner on Azure VM
+  hosts: runners  
+  become: yes
+  vars:
+    gitlab_runner_url: "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64"
+    gitlab_runner_path: "/usr/local/bin/gitlab-runner"
+    gitlab_runner_user: "gitlab-runner"
+    gitlab_runner_registration_url: "https://tools.ages.pucrs.br/"
+    gitlab_runner_registration_token: "GR1348941T5JxntqrHD48c3zFhW2f"
+    gitlab_runner_executor: "shell"  
+    gitlab_runner_description: "Azure Runner VM"
+    gitlab_runner_tags: "azure,runner"
+    gitlab_runner_work_dir: "/home/{{ gitlab_runner_user }}/builds"
+    gitlab_runner_config_dir: "/etc/gitlab-runner"
+    gitlab_runner_concurrent_jobs: 2 
+
+  tasks:
+    - name: Ensure dependencies are installed
+      apt:
+        name: 
+          - curl
+          - ca-certificates
+          - git
+        state: present
+        update_cache: yes
+
+    - name: Create GitLab Runner user
+      user:
+        name: "{{ gitlab_runner_user }}"
+        shell: /bin/bash
+        create_home: yes
+        system: yes
+
+    - name: Download GitLab Runner binary
+      get_url:
+        url: "{{ gitlab_runner_url }}"
+        dest: "{{ gitlab_runner_path }}"
+        mode: '0755'
+      notify: restart gitlab-runner
+
+    - name: Create GitLab Runner config directory
+      file:
+        path: "{{ gitlab_runner_config_dir }}"
+        state: directory
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
+        mode: '0755'
+
+    - name: Register GitLab Runner
+      command: >
+        {{ gitlab_runner_path }} register
+        --non-interactive
+        --url "{{ gitlab_runner_registration_url }}"
+        --registration-token "{{ gitlab_runner_registration_token }}"
+        --executor "{{ gitlab_runner_executor }}"
+        --description "{{ gitlab_runner_description }}"
+        --tag-list "{{ gitlab_runner_tags }}"
+        --run-untagged
+        --locked=false
+        --workdir "{{ gitlab_runner_work_dir }}"
+      become_user: "{{ gitlab_runner_user }}"
+      environment:
+        HOME: "/home/{{ gitlab_runner_user }}"
+      args:
+        creates: "{{ gitlab_runner_config_dir }}/config.toml"
+
+    - name: Install GitLab Runner service
+      command: "{{ gitlab_runner_path }} install"
+      notify: restart gitlab-runner
+
+    - name: Start GitLab Runner service
+      command: "{{ gitlab_runner_path }} start"
+      notify: restart gitlab-runner
+
+  handlers:
+    - name: restart gitlab-runner
+      service:
+        name: gitlab-runner
+        state: restarted

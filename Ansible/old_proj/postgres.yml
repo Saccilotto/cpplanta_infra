@@ -1,0 +1,171 @@
+---
+- hosts: postgresql
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    postgres_user: "postgres"
+    postgres_password: "postgres"
+    postgres_db: "postgres"
+    postgres_exporter_user: "postgres_exporter"
+    postgres_exporter_password: "postgres_exporter"
+    postgres_port: 5432
+    postgres_exporter_port: 9187
+    db_init_scripts_path: "./scripts"  # Adjust this path to where your SQL scripts are located
+  tasks:
+    - name: Update apt cache and install dependencies
+      apt:
+        update_cache: yes
+        name:
+          - docker.io
+          - docker-compose
+          - python3-pip
+          - python3-psycopg2
+        state: present
+
+    - name: Install Docker SDK for Python
+      pip:
+        name: docker
+        state: present
+
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Create Docker network
+      community.docker.docker_network:
+        name: postgres_network
+
+    - name: Pull PostgreSQL image
+      community.docker.docker_image:
+        name: postgres:14
+        source: pull
+
+    - name: Pull Node Exporter image
+      community.docker.docker_image:
+        name: prom/node-exporter
+        source: pull
+
+    - name: Pull PostgreSQL Exporter image
+      community.docker.docker_image:
+        name: quay.io/prometheuscommunity/postgres-exporter
+        source: pull
+
+    - name: Run PostgreSQL container
+      community.docker.docker_container:
+        name: postgres
+        image: postgres:14
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ postgres_port }}:{{ postgres_port }}"
+        env:
+          POSTGRES_USER: "{{ postgres_user }}"
+          POSTGRES_PASSWORD: "{{ postgres_password }}"
+          POSTGRES_DB: "{{ postgres_db }}"
+        networks:
+          - name: postgres_network
+
+    - name: Run Node Exporter container
+      community.docker.docker_container:
+        name: node_exporter
+        image: prom/node-exporter
+        state: started
+        restart_policy: always
+        ports:
+          - "9100:9100"
+        networks:
+          - name: postgres_network
+
+    - name: Run PostgreSQL Exporter container
+      community.docker.docker_container:
+        name: postgres_exporter
+        image: quay.io/prometheuscommunity/postgres-exporter
+        state: started
+        restart_policy: always
+        env:
+          DATA_SOURCE_NAME: "postgresql://{{ postgres_user }}:{{ postgres_password }}@postgres:{{ postgres_port }}/{{ postgres_db }}?sslmode=disable"
+        ports:
+          - "{{ postgres_exporter_port }}:{{ postgres_exporter_port }}"
+        networks:
+          - name: postgres_network
+
+    - name: Wait for PostgreSQL to be ready
+      wait_for:
+        port: "{{ postgres_port }}"
+        host: "localhost"  # Use localhost since the playbook is running on the same host
+        timeout: 30
+
+    - name: Copy SQL scripts to VM
+      copy:
+        src: "{{ db_init_scripts_path }}/"
+        dest: "/tmp/db_scripts/"
+        mode: "0755"
+
+    - name: Execute SQL scripts inside PostgreSQL container
+      shell: |
+        docker exec -i postgres psql -U {{ postgres_user }} -d {{ postgres_db }} -f /tmp/db_scripts/{{ item }}
+      with_fileglob:
+        - "/tmp/db_scripts/*.sql"
+      args:
+        chdir: "/tmp/db_scripts/"
+      become: false
+
+    - name: Clean up SQL scripts from VM
+      file:
+        path: "/tmp/db_scripts/"
+        state: absent
+
+    - name: Create PostgreSQL user for exporter
+      community.postgresql.postgresql_user:
+        name: "{{ postgres_exporter_user }}"
+        password: "{{ postgres_exporter_password }}"
+        db: "{{ postgres_db }}"
+        state: present
+        login_host: "localhost"
+        login_user: "{{ postgres_user }}"
+        login_password: "{{ postgres_password }}"
+        login_port: "{{ postgres_port }}"
+
+    - name: Grant SELECT on pg_stat_database to the PostgreSQL exporter user
+      community.postgresql.postgresql_privs:
+        db: "{{ postgres_db }}"
+        role: "{{ postgres_exporter_user }}"
+        type: table
+        privs: "SELECT"
+        objs: "pg_stat_database"
+        schema: "pg_catalog"
+        state: present
+        login_host: "localhost"
+        login_user: "{{ postgres_user }}"
+        login_password: "{{ postgres_password }}"
+        login_port: "{{ postgres_port }}"
+
+    - name: Grant SELECT on pg_stat_activity to the PostgreSQL exporter user
+      community.postgresql.postgresql_privs:
+        db: "{{ postgres_db }}"
+        role: "{{ postgres_exporter_user }}"
+        type: table
+        privs: "SELECT"
+        objs: "pg_stat_activity"
+        schema: "pg_catalog"
+        state: present
+        login_host: "localhost"
+        login_user: "{{ postgres_user }}"
+        login_password: "{{ postgres_password }}"
+        login_port: "{{ postgres_port }}"
+
+    - name: Grant SELECT on pg_stat_replication to the PostgreSQL exporter user
+      community.postgresql.postgresql_privs:
+        db: "{{ postgres_db }}"
+        role: "{{ postgres_exporter_user }}"
+        type: table
+        privs: "SELECT"
+        objs: "pg_stat_replication"
+        schema: "pg_catalog"
+        state: present
+        login_host: "localhost"
+        login_user: "{{ postgres_user }}"
+        login_password: "{{ postgres_password }}"
+        login_port: "{{ postgres_port }}"
