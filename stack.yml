@@ -1,0 +1,88 @@
+services:
+  backend:
+    image: norohim/cp-planta-backend:latest
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=postgres
+    networks:
+      - backend_network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - ./backend:/usr/src/app
+    ports:
+      - "3000:3000"
+
+  database:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - backend_network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+
+  frontend:
+    image: node:20
+    environment:
+      - NODE_ENV=production
+    networks:
+      - frontend_network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - ./frontend:/usr/src/app
+    ports:
+      - "3001:3001"
+
+  runners:
+    image: gitlab/gitlab-runner:alpine
+    environment:
+      - CI_SERVER_URL=https://gitlab.example.com
+      - RUNNER_TOKEN=my-token
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - runner_network
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+
+networks:
+  backend_network:
+    driver: overlay
+  frontend_network:
+    driver: overlay
+  runner_network:
+    driver: overlay
+
+volumes:
+  db_data:
+    driver: local
