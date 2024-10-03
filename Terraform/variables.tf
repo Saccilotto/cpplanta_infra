@@ -28,7 +28,7 @@ variable "public_key_path" {
 }
 
 variable "vm_names" {
-  default = ["vm1", "vm2"]
+  default = ["manager", "worker"]
 }
 
 variable "username" {

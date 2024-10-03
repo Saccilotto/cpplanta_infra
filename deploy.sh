@@ -11,11 +11,11 @@ terraform init
 echo "Applying Terraform configuration..."
 terraform apply -auto-approve
 
+cd ..
+
 # Sleep for instances to boot up
 echo "Waiting for instances to boot up..."
 sleep 7
-
-cd ..
 
 # Deploy do stack no Docker Swarm
 echo "Deploying Docker Swarm stack..."
