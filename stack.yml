@@ -59,15 +59,17 @@ services:
       - "3001:3001"
 
   runners:
-    image: gitlab/gitlab-runner:alpine
+    image: gitlab/gitlab-runner:latest
     environment:
-      - CI_SERVER_URL=https://gitlab.example.com
-      - RUNNER_TOKEN=my-token
+      - CI_SERVER_URL=https://tools.ages.pucrs.br/
+      - RUNNER_TOKEN=GR1348941T5JxntqrHD48c3zFhW2f
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /srv/gitlab-runner/config:/etc/gitlab-runner
     networks:
       - runner_network
     deploy:
+      mode: replicated
       replicas: 2
       placement:
         constraints:

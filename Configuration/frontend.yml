@@ -1,5 +1,4 @@
 ---
-- name: Deploy Frontend Application
   hosts: frontend 
   become: yes
   vars:

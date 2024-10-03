@@ -9,6 +9,8 @@ STACK_NAME="CP-Planta"
 # Diretório onde o script run.sh do Ansible está localizado
 ANSIBLE_DIR="./Ansible"
 
+ansible-playbook -i ./staticip.ini swarmsetup.yml
+
 # Deploy do stack no Docker Swarm
 echo "Deploying Docker Swarm stack..."
 docker stack deploy -c $STACK_FILE $STACK_NAME
