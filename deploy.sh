@@ -17,11 +17,12 @@ docker stack deploy -c $STACK_FILE $STACK_NAME
 sleep 10
 docker stack ps $STACK_NAME
 
+cd ./Ansible
+
 # Gerar inventário dinâmico
 echo "Generating dynamic inventory..."
-./Ansible/generate_inventory.sh
+./generate_inventory.sh
 
 # Executar os playbooks do Ansible
 echo "Running Ansible playbooks..."
-cd ./Ansible
 ./run.sh
