@@ -1,5 +1,5 @@
 ---
-  hosts: frontend 
+- hosts: frontend 
   become: yes
   vars:
     docker_image: "norohim/cp-planta-frontend:latest" 

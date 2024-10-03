@@ -1,29 +1,31 @@
 #!/bin/bash
 
+cd "$PWD"/Swarm
+
 # Caminho do arquivo original gerado pelo Terraform
 terraform_inventory="static_ip.ini"  # Substitua pelo nome correto se necessário
 
 # Caminho para o novo arquivo de inventário que será gerado
 new_inventory="../Configuration/inventory.ini"
 
-# Ler IPs dinâmicos das seções [vm1] e [vm2]
-vm1_ip=$(grep -A 1 '\[manager\]' $terraform_inventory | tail -n 1 | cut -d' ' -f1)
-vm2_ip=$(grep -A 1 '\[worker\]' $terraform_inventory | tail -n 1 | cut -d' ' -f1)
+# Ler as linhas completas das seções [manager] e [worker] do arquivo original
+vm1_info=$(grep -A 1 '\[manager\]' $terraform_inventory | tail -n 1)
+vm2_info=$(grep -A 1 '\[worker\]' $terraform_inventory | tail -n 1)
 
-# Criar novo arquivo de inventário
+# Criar novo arquivo de inventário com as informações completas (IPs, usuários e chaves)
 cat <<EOL > $new_inventory
 [backend]
-$vm1_ip
+$vm1_info
 
 [database]
-$vm1_ip
+$vm1_info
 
 [frontend]
-$vm2_ip
+$vm2_info
 
 [runners]
-$vm1_ip
-$vm2_ip
+$vm1_info
+$vm2_info
 EOL
 
 # Exibir o inventário gerado

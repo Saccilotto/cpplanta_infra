@@ -1,16 +1,15 @@
 ---
-  hosts: all  
+- hosts: runners  
   become: yes
   vars:
     gitlab_runner_url: "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64"
     gitlab_runner_path: "/usr/local/bin/gitlab-runner"
     gitlab_runner_user: "gitlab-runner"
-    gitlab_runner_registration_url: "https://tools.ages.pucrs.br/"
-    gitlab_runner_registration_token: "GR1348941T5JxntqrHD48c3zFhW2f"
+    gitlab_runner_registration_url: "${CI_SERVER_URL}"
+    gitlab_runner_registration_token: "${RUNNER_TOKEN}"
     gitlab_runner_executor: "shell"  
     gitlab_runner_description: "Azure Runner VM"
     gitlab_runner_tags: "azure,runner"
-    gitlab_runner_work_dir: "/home/{{ gitlab_runner_user }}/builds"
     gitlab_runner_config_dir: "/etc/gitlab-runner"
     gitlab_runner_concurrent_jobs: 2 
 
@@ -57,20 +56,28 @@
       --tag-list "{{ gitlab_runner_tags }}"
       --run-untagged
       --locked=false
-      --workdir "{{ gitlab_runner_work_dir }}"
-    become_user: "{{ gitlab_runner_user }}"
+    become: yes
+    become_method: sudo
     environment:
       HOME: "/home/{{ gitlab_runner_user }}"
     args:
       creates: "{{ gitlab_runner_config_dir }}/config.toml"
+    
+  - name: Check if GitLab Runner service exists
+    stat:
+      path: /etc/systemd/system/gitlab-runner.service
+    register: runner_service
 
   - name: Install GitLab Runner service
-    command: "{{ gitlab_runner_path }} install"
+    command: "{{ gitlab_runner_path }} install --service-user {{ gitlab_runner_user }}"
+    when: not runner_service.stat.exists
     notify: restart gitlab-runner
 
   - name: Start GitLab Runner service
-    command: "{{ gitlab_runner_path }} start"
-    notify: restart gitlab-runner
+    systemd:
+      name: gitlab-runner
+      state: started
+      enabled: true
 
   handlers:
     - name: restart gitlab-runner

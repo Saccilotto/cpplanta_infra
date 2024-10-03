@@ -17,14 +17,19 @@ cd ..
 echo "Waiting for instances to boot up..."
 sleep 7
 
+cd Swarm/
+
 # Deploy do stack no Docker Swarm
 echo "Deploying Docker Swarm stack..."
-ansible-playbook -i ./Swarm/static_ip.ini ./Swarm/swarm_setup.yml
+ansible-playbook -i ./static_ip.ini ./swarm_setup.yml
 
 sleep 5
 
+cd ..
+cd Configuration/
+
 # Navigate to Ansible directory and run playbook
 echo "Running Ansible playbook..."
-./Configuration/run_config.sh
+./run_config.sh
 
 echo "Deployment complete."

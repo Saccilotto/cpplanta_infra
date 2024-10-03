@@ -60,8 +60,8 @@ services:
   runners:
     image: gitlab/gitlab-runner:latest
     environment:
-      - CI_SERVER_URL=https://tools.ages.pucrs.br/
-      - RUNNER_TOKEN=GR1348941T5JxntqrHD48c3zFhW2f
+      - CI_SERVER_URL=${CI_SERVER_URL}
+      - RUNNER_TOKEN=${RUNNER_TOKEN}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /srv/gitlab-runner/config:/etc/gitlab-runner
