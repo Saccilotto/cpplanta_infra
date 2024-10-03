@@ -21,21 +21,17 @@ terraform apply -auto-approve
 
 # Sleep for instances to boot up
 echo "Waiting for instances to boot up..."
-sleep 10
+sleep 7
 
 cd ..
 
-ansible-playbook -i ./staticip.ini swarmsetup.yml
-
 # Deploy do stack no Docker Swarm
 echo "Deploying Docker Swarm stack..."
-docker stack deploy -c $STACK_FILE $STACK_NAME
+ansible-playbook -i ./staticip.ini swarmsetup.yml
 
-sleep 5
+sleep 3
 
-docker stack ps $STACK_NAME
-
-cd ./Configuration/
+cd ./$ANSIBLE_DIR/
 
 echo "Generating dynamic inventory..."
 ./generate_inventory.sh

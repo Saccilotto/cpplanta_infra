@@ -4,13 +4,13 @@ locals {
 
 locals {
   inventory_content = join("\n", [
-    for name, ip in local.vm_public_ips : "[${name}]\n${ip} ansible_ssh_private_key_file=./ssh_keys/${name}.pem"
+    for name, ip in local.vm_public_ips : "[${name}]\n${ip} ansible_ssh_user=${var.username} ansible_ssh_private_key_file=./ssh_keys/${name}.pem"
   ])
 }
 
 resource "local_file" "ansible_inventory_tpl" {
   content  = local.inventory_content
-  filename = "../Ansible/inventory.ini"
+  filename = "../staticip.ini"
 }
 
 resource "tls_private_key" "vm_ssh_key" {
@@ -23,6 +23,6 @@ resource "tls_private_key" "vm_ssh_key" {
 resource "local_file" "ssh_key_files" {
   for_each = tls_private_key.vm_ssh_key
   content  = each.value.private_key_pem
-  filename = "../Ansible/ssh_keys/${each.key}.pem"
+  filename = "../ssh_keys/${each.key}.pem"
   file_permission = "0400"
 }

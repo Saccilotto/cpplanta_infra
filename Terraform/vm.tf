@@ -7,11 +7,11 @@ resource "azurerm_linux_virtual_machine" "vm" {
     azurerm_network_interface.nic[each.key].id,
   ]
   size               = "Standard_B1s"
-  admin_username     = "adminuser"
+  admin_username     = var.username
   disable_password_authentication = true
   
   admin_ssh_key {
-    username   = "adminuser"
+    username   = var.username
     public_key = tls_private_key.vm_ssh_key[each.key].public_key_openssh
   }
  

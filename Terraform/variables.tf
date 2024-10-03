@@ -28,5 +28,9 @@ variable "public_key_path" {
 }
 
 variable "vm_names" {
-  default = ["backend", "frontend", "runners"]
+  default = ["vm1", "vm2"]
+}
+
+variable "username" {
+  default = "adminuser"
 }
