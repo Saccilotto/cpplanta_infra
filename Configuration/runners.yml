@@ -15,62 +15,62 @@
     gitlab_runner_concurrent_jobs: 2 
 
   tasks:
-    - name: Ensure dependencies are installed
-      apt:
-        name: 
-          - curl
-          - ca-certificates
-          - git
-        state: present
-        update_cache: yes
+  - name: Ensure dependencies are installed
+    apt:
+      name: 
+        - curl
+        - ca-certificates
+        - git
+      state: present
+      update_cache: yes
 
-    - name: Create GitLab Runner user
-      user:
-        name: "{{ gitlab_runner_user }}"
-        shell: /bin/bash
-        create_home: yes
-        system: yes
+  - name: Create GitLab Runner user
+    user:
+      name: "{{ gitlab_runner_user }}"
+      shell: /bin/bash
+      create_home: yes
+      system: yes
 
-    - name: Download GitLab Runner binary
-      get_url:
-        url: "{{ gitlab_runner_url }}"
-        dest: "{{ gitlab_runner_path }}"
-        mode: '0755'
-      notify: restart gitlab-runner
+  - name: Download GitLab Runner binary
+    get_url:
+      url: "{{ gitlab_runner_url }}"
+      dest: "{{ gitlab_runner_path }}"
+      mode: '0755'
+    notify: restart gitlab-runner
 
-    - name: Create GitLab Runner config directory
-      file:
-        path: "{{ gitlab_runner_config_dir }}"
-        state: directory
-        owner: "{{ gitlab_runner_user }}"
-        group: "{{ gitlab_runner_user }}"
-        mode: '0755'
+  - name: Create GitLab Runner config directory
+    file:
+      path: "{{ gitlab_runner_config_dir }}"
+      state: directory
+      owner: "{{ gitlab_runner_user }}"
+      group: "{{ gitlab_runner_user }}"
+      mode: '0755'
 
-    - name: Register GitLab Runner
-      command: >
-        {{ gitlab_runner_path }} register
-        --non-interactive
-        --url "{{ gitlab_runner_registration_url }}"
-        --registration-token "{{ gitlab_runner_registration_token }}"
-        --executor "{{ gitlab_runner_executor }}"
-        --description "{{ gitlab_runner_description }}"
-        --tag-list "{{ gitlab_runner_tags }}"
-        --run-untagged
-        --locked=false
-        --workdir "{{ gitlab_runner_work_dir }}"
-      become_user: "{{ gitlab_runner_user }}"
-      environment:
-        HOME: "/home/{{ gitlab_runner_user }}"
-      args:
-        creates: "{{ gitlab_runner_config_dir }}/config.toml"
+  - name: Register GitLab Runner
+    command: >
+      {{ gitlab_runner_path }} register
+      --non-interactive
+      --url "{{ gitlab_runner_registration_url }}"
+      --registration-token "{{ gitlab_runner_registration_token }}"
+      --executor "{{ gitlab_runner_executor }}"
+      --description "{{ gitlab_runner_description }}"
+      --tag-list "{{ gitlab_runner_tags }}"
+      --run-untagged
+      --locked=false
+      --workdir "{{ gitlab_runner_work_dir }}"
+    become_user: "{{ gitlab_runner_user }}"
+    environment:
+      HOME: "/home/{{ gitlab_runner_user }}"
+    args:
+      creates: "{{ gitlab_runner_config_dir }}/config.toml"
 
-    - name: Install GitLab Runner service
-      command: "{{ gitlab_runner_path }} install"
-      notify: restart gitlab-runner
+  - name: Install GitLab Runner service
+    command: "{{ gitlab_runner_path }} install"
+    notify: restart gitlab-runner
 
-    - name: Start GitLab Runner service
-      command: "{{ gitlab_runner_path }} start"
-      notify: restart gitlab-runner
+  - name: Start GitLab Runner service
+    command: "{{ gitlab_runner_path }} start"
+    notify: restart gitlab-runner
 
   handlers:
     - name: restart gitlab-runner

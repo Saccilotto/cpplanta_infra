@@ -1,3 +1,4 @@
+version: "3.8"
 services:
   backend:
     image: norohim/cp-planta-backend:latest
@@ -12,13 +13,8 @@ services:
       - backend_network
     deploy:
       replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
       restart_policy:
         condition: on-failure
-    volumes:
-      - ./backend:/usr/src/app
     ports:
       - "3000:3000"
 
@@ -34,27 +30,19 @@ services:
       - backend_network
     deploy:
       replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
       restart_policy:
         condition: on-failure
 
   frontend:
-    image: node:20
+    image: norohim/cp-planta-frontend:latest
     environment:
       - NODE_ENV=production
     networks:
       - frontend_network
     deploy:
       replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
       restart_policy:
         condition: on-failure
-    volumes:
-      - ./frontend:/usr/src/app
     ports:
       - "3001:3001"
 
@@ -71,12 +59,9 @@ services:
     deploy:
       mode: replicated
       replicas: 2
-      placement:
-        constraints:
-          - node.role == worker
       restart_policy:
         condition: on-failure
-
+        
 networks:
   backend_network:
     driver: overlay

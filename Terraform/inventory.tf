@@ -10,7 +10,7 @@ locals {
 
 resource "local_file" "ansible_inventory_tpl" {
   content  = local.inventory_content
-  filename = "../staticip.ini"
+  filename = "../Swarm/staticip.ini"
 }
 
 resource "tls_private_key" "vm_ssh_key" {

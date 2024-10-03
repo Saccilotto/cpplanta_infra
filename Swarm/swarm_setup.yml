@@ -2,8 +2,6 @@
 - name: Configurar o Docker Swarm Cluster
   hosts: all
   become: yes
-  vars:
-    stack_name: CP-Planta
   tasks:
 
   - name: Verificar se o Docker está instalado
@@ -94,3 +92,23 @@
     delegate_to: "{{ groups['all'][0] }}"
     run_once: true
     become: yes
+
+  - name: Copiar o script de geração de inventário para o Manager
+    copy:
+      src: ./inventory_gen.sh
+      dest: /home/adminuser/inventory_gen.sh
+    delegate_to: "{{ groups['all'][0] }}"
+    run_once: true
+
+  - name: Executar o script de geração de inventário no Manager
+    shell: bash /home/adminuser/inventory_gen.sh
+    delegate_to: "{{ groups['all'][0] }}"
+    run_once: true
+
+  - name: Copiar o arquivo inventory.ini da máquina remota para o diretório local
+    fetch:
+      src: /home/adminuser/inventory.ini  
+      dest: ../Configuration/ 
+      flat: yes
+    delegate_to: "{{ groups['all'][0] }}" 
+    run_once: true 
