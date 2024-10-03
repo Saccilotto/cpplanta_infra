@@ -1,12 +1,11 @@
 ---
-- name: Deploy Frontend Application
-  hosts: frontend  # Update to match your frontend VM group or host in the inventory
+  hosts: frontend 
   become: yes
   vars:
-    docker_image: "norohim/cp-planta-frontend:latest"  # Replace with your frontend Docker image
-    container_name: "frontend-app"
-    container_port: 3001  # Replace with the port your frontend app uses
-    host_port: 3001  # Port to expose on the host
+    docker_image: "norohim/cp-planta-frontend:latest" 
+    container_name: "frontend"
+    container_port: 3001 
+    host_port: 3001  
 
   tasks:
     - name: Install Docker
@@ -36,4 +35,4 @@
         ports:
           - "{{ host_port }}:{{ container_port }}"
         env:
-          NODE_ENV: "production"  # Add other environment variables if necessary
+          NODE_ENV: "production"  

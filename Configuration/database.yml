@@ -1,5 +1,5 @@
 ---
-- hosts: backend  
+- hosts: database
   become: yes
   vars:
     ansible_python_interpreter: /usr/bin/python3
@@ -10,8 +10,6 @@
     postgres_exporter_password: "postgres_exporter"
     postgres_port: 5432
     postgres_exporter_port: 9187
-    backend_image: "norohim/cp-planta-backend:latest"  
-    backend_port: 3000 
     db_init_scripts_path: "./scripts"  # Caminho para os scripts SQL
   tasks:
     - name: Update apt cache and install dependencies
@@ -37,16 +35,11 @@
 
     - name: Create Docker network
       community.docker.docker_network:
-        name: app_network  # Rede para todos os contêineres
+        name: app_network  # Rede para todos os containers
 
     - name: Pull PostgreSQL image
       community.docker.docker_image:
-        name: postgres:14
-        source: pull
-
-    - name: Pull Node Exporter image
-      community.docker.docker_image:
-        name: prom/node-exporter
+        name: postgres:15
         source: pull
 
     - name: Pull PostgreSQL Exporter image
@@ -54,15 +47,10 @@
         name: quay.io/prometheuscommunity/postgres-exporter
         source: pull
 
-    - name: Pull Backend image
-      community.docker.docker_image:
-        name: "{{ backend_image }}"
-        source: pull
-
     - name: Run PostgreSQL container
       community.docker.docker_container:
         name: postgres
-        image: postgres:14
+        image: postgres:15
         state: started
         restart_policy: always
         ports:
@@ -71,17 +59,6 @@
           POSTGRES_USER: "{{ postgres_user }}"
           POSTGRES_PASSWORD: "{{ postgres_password }}"
           POSTGRES_DB: "{{ postgres_db }}"
-        networks:
-          - name: app_network
-
-    - name: Run Node Exporter container
-      community.docker.docker_container:
-        name: node_exporter
-        image: prom/node-exporter
-        state: started
-        restart_policy: always
-        ports:
-          - "9100:9100"
         networks:
           - name: app_network
 
@@ -97,23 +74,6 @@
           - "{{ postgres_exporter_port }}:{{ postgres_exporter_port }}"
         networks:
           - name: app_network
-
-    - name: Run Backend container
-      community.docker.docker_container:
-        name: backend
-        image: "{{ backend_image }}"
-        state: started
-        restart_policy: always
-        ports:
-          - "{{ backend_port }}:{{ backend_port }}"
-        networks:
-          - name: app_network
-        env: 
-          DB_HOST: "postgres"
-          DB_PORT: "{{ postgres_port }}"
-          DB_USER: "{{ postgres_user }}"
-          DB_PASSWORD: "{{ postgres_password }}"
-          DB_NAME: "{{ postgres_db }}"
 
     - name: Wait for PostgreSQL to be ready
       wait_for:

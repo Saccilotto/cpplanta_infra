@@ -1,0 +1,50 @@
+---
+- name: Configurar o Docker Swarm Cluster
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Verificar se o Docker está instalado
+      command: docker --version
+      ignore_errors: yes
+      register: docker_installed
+
+    - name: Instalar o Docker caso não esteja presente
+      apt:
+        name: docker.io
+        state: present
+      when: docker_installed is failed
+
+    - name: Iniciar o Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Verificar se o nó é o Manager
+      command: docker info
+      register: docker_info
+      ignore_errors: yes
+      failed_when: "'Swarm: active' not in docker_info.stdout"
+
+    - name: Iniciar o Docker Swarm no Manager
+      shell: docker swarm init --advertise-addr {{ ansible_host }}
+      when: "'Swarm: inactive' in docker_info.stdout"
+      register: swarm_init
+
+    - name: Capturar o token do Manager
+      shell: docker swarm join-token worker -q
+      when: "'Swarm: active' in docker_info.stdout"
+      register: worker_token
+      delegate_to: "{{ groups['manager'][0] }}"
+      run_once: true
+
+    - name: Adicionar o Worker ao Swarm Cluster
+      shell: docker swarm join --token {{ worker_token.stdout }} {{ groups['manager'][0] }}:2377
+      when: "'Swarm: inactive' in docker_info.stdout"
+      delegate_to: "{{ groups['worker'] }}"
+
+    - name: Verificar o status dos nós do Docker Swarm
+      command: docker node ls
+      when: "'Swarm: active' in docker_info.stdout"
+      delegate_to: "{{ groups['manager'][0] }}"
