@@ -1,5 +1,5 @@
 #!/bin/bash
 
-cd "$PWD"/Configuration
+#cd "$PWD"/Configuration
 
-ansible-playbook -i inventory.ini ./runners.yml
+ANSIBLE_CONFIG=./ansible.cfg ansible-playbook -i inventory.ini ./runners.yml

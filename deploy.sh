@@ -2,6 +2,9 @@
 
 set -e
 
+# Set project vars
+export $(grep -v '^#' .env | xargs)
+
 # Navigate to Terraform directory and initialize Terraform
 echo "Initializing Terraform..."
 cd Terraform/
@@ -21,7 +24,7 @@ cd Swarm/
 
 # Deploy do stack no Docker Swarm
 echo "Deploying Docker Swarm stack..."
-ansible-playbook -i ./static_ip.ini ./swarm_setup.yml
+ANSIBLE_CONFIG=./ansible.cfg ansible-playbook -i ./static_ip.ini ./swarm_setup.yml
 
 sleep 5
 
