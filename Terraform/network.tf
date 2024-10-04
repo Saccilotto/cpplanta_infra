@@ -43,98 +43,158 @@ resource "azurerm_network_security_group" "nsg" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
+  # Docker Swarm Manager
   security_rule {
-    name                       = "AllowSSH"
-    priority                   = 1001
+    name                       = "allow-docker-swarm-manager"
+    priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "Tcp"
+    protocol                   = "TCP"
     source_port_range          = "*"
-    destination_port_range     = "22"
+    destination_port_range     = "2377"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
+  # Docker Swarm Node Communication
   security_rule {
-    name                       = "AllowHTTP"
-    priority                   = 1002
+    name                       = "allow-docker-swarm-communication"
+    priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "Tcp"
+    protocol                   = "TCP"
     source_port_range          = "*"
-    destination_port_range     = "80"
+    destination_port_range     = "7946"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
+  # Docker Swarm Overlay Network
   security_rule {
-    name                       = "AllowPostregresql"
-    priority                   = 1003
+    name                       = "allow-docker-swarm-overlay-network"
+    priority                   = 120
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "Tcp"
+    protocol                   = "UDP"
+    source_port_range          = "*"
+    destination_port_range     = "4789"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  # PostgreSQL
+  security_rule {
+    name                       = "allow-postgresql"
+    priority                   = 130
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "TCP"
     source_port_range          = "*"
     destination_port_range     = "5432"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
+  # pgAdmin HTTP
   security_rule {
-    name                       = "AllowPrometheus"
-    priority                   = 1004
+    name                       = "allow-pgadmin"
+    priority                   = 140
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "Tcp"
+    protocol                   = "TCP"
     source_port_range          = "*"
-    destination_port_range     = "9090"
+    destination_port_range     = "80"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
+  # pgAdmin HTTPS
   security_rule {
-    name                       = "AllowNode"
-    priority                   = 1005
+    name                       = "allow-pgadmin-https"
+    priority                   = 150
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "Tcp"
+    protocol                   = "TCP"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  # Backend Node.js (Port 3000)
+  security_rule {
+    name                       = "allow-backend-nodejs"
+    priority                   = 160
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "TCP"
     source_port_range          = "*"
     destination_port_range     = "3000"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
+  # Frontend Node.js (Port 3001)
   security_rule {
-    name                       = "AllowNode2"
-    priority                   = 1006
+    name                       = "allow-frontend-nodejs"
+    priority                   = 170
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "Tcp"
+    protocol                   = "TCP"
     source_port_range          = "*"
     destination_port_range     = "3001"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
+  # GitLab Runner SSH
   security_rule {
-    name                       = "AllowFront"	
-    priority                   = 1007
-    direction                  = "Inbound"	
-    access                     = "Allow"	
-    protocol                   = "Tcp"	
-    source_port_range          = "*"	
-    destination_port_range     = "8080"	
-    source_address_prefix      = "*"	
+    name                       = "allow-gitlab-runner-ssh"
+    priority                   = 180
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "TCP"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
+  # GitLab Runner HTTP
   security_rule {
-    name                       = "AllowSwarm"
-    priority                   = 1008
+    name                       = "allow-gitlab-runner-http"
+    priority                   = 190
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "Tcp"
+    protocol                   = "TCP"
     source_port_range          = "*"
-    destination_port_range     = "2377"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  # GitLab Runner HTTPS
+  security_rule {
+    name                       = "allow-gitlab-runner-https"
+    priority                   = 200
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "TCP"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  # SSH access for VM management
+  security_rule {
+    name                       = "allow-ssh"
+    priority                   = 210
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "TCP"
+    source_port_range          = "*"
+    destination_port_range     = "22"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
