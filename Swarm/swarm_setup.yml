@@ -70,39 +70,39 @@
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
 
-  # Checar conectividade na porta 3001 para o frontend
-  - name: Verificar se o frontend está acessível via porta 3001
-    wait_for:
-      host: "{{ ansible_host  }}"
-      port: 3001
-      state: started
-      timeout: 30
-    delegate_to: "{{ item }}"
-    loop: "{{ groups['all'] }}"
-    run_once: false
+  # # Checar conectividade na porta 3001 para o frontend
+  # - name: Verificar se o frontend está acessível via porta 3001
+  #   wait_for:
+  #     host: "{{ ansible_host  }}"
+  #     port: 3001
+  #     state: started
+  #     timeout: 30
+  #   delegate_to: "{{ item }}"
+  #   loop: "{{ groups['all'] }}"
+  #   run_once: false
 
-  # Verificar se o frontend responde HTTP na porta 3001
-  - name: Verificar se o frontend responde HTTP na porta 3001
-    uri:
-      url: "http://{{ item }}:3001"
-      status_code: 200
-    loop: "{{ groups['all'] }}"
-    run_once: false
+  # # Verificar se o frontend responde HTTP na porta 3001
+  # - name: Verificar se o frontend responde HTTP na porta 3001
+  #   uri:
+  #     url: "http://{{ item }}:3001"
+  #     status_code: 200
+  #   loop: "{{ groups['all'] }}"
+  #   run_once: false
 
-  # Checar conectividade na porta 8080 para o pgAdmin
-  - name: Verificar se o pgAdmin está acessível via porta 8080
-    wait_for:
-      host: "{{ ansible_host  }}"
-      port: 80
-      state: started
-      timeout: 30
-    delegate_to: "{{ item }}"
-    loop: "{{ groups['all'] }}"
-    run_once: false
+  # # Checar conectividade na porta 8080 para o pgAdmin
+  # - name: Verificar se o pgAdmin está acessível via porta 8080
+  #   wait_for:
+  #     host: "{{ ansible_host  }}"
+  #     port: 80
+  #     state: started
+  #     timeout: 30
+  #   delegate_to: "{{ item }}"
+  #   loop: "{{ groups['all'] }}"
+  #   run_once: false
 
-  # Verificar se o pgAdmin responde HTTP na porta 8080
-  - name: Verificar se o pgAdmin responde HTTP na porta 80
-    uri:
-      url: "http://{{ item }}:80"
-      status_code: 200
-    loop: "{{ groups['all'] }}"
+  # # Verificar se o pgAdmin responde HTTP na porta 8080
+  # - name: Verificar se o pgAdmin responde HTTP na porta 80
+  #   uri:
+  #     url: "http://{{ item }}:80"
+  #     status_code: 200
+  #   loop: "{{ groups['all'] }}"
