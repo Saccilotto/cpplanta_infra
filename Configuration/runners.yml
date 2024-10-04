@@ -1,5 +1,5 @@
 ---
-- hosts: runners  
+- hosts: all  
   become: yes
   vars:
     gitlab_runner_url: "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64"
