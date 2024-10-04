@@ -80,20 +80,8 @@ resource "azurerm_network_security_group" "nsg" {
   }
 
   security_rule {
-    name                       = "AllowMongoDB"
-    priority                   = 1004
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "27017"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
     name                       = "AllowPrometheus"
-    priority                   = 1005
+    priority                   = 1004
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
@@ -105,7 +93,7 @@ resource "azurerm_network_security_group" "nsg" {
 
   security_rule {
     name                       = "AllowNode"
-    priority                   = 1006
+    priority                   = 1005
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
@@ -115,44 +103,8 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  security_rule {	 
-    name                       = "AllowNodeExporter"	    
-    priority                   = 1007	   
-    direction                  = "Inbound"	
-    access                     = "Allow"	
-    protocol                   = "Tcp"	
-    source_port_range          = "*"	
-    destination_port_range     = "9100"	
-    source_address_prefix      = "*"	
-    destination_address_prefix = "*"	
-  }	
-
   security_rule {
-    name                       = "AllowPostgresqlExporter"	
-    priority                   = 1008
-    direction                  = "Inbound"	
-    access                     = "Allow"	
-    protocol                   = "Tcp"	
-    source_port_range          = "*"	
-    destination_port_range     = "9187"	
-    source_address_prefix      = "*"	
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "AllowFrontend"	
-    priority                   = 1009	
-    direction                  = "Inbound"	
-    access                     = "Allow"	
-    protocol                   = "Tcp"	
-    source_port_range          = "*"	
-    destination_port_range     = "8080"	
-    source_address_prefix      = "*"	
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "AllowFrontend"
+    name                       = "AllowNode2"
     priority                   = 1006
     direction                  = "Inbound"
     access                     = "Allow"
@@ -162,6 +114,19 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
+  security_rule {
+    name                       = "AllowFront"	
+    priority                   = 1007
+    direction                  = "Inbound"	
+    access                     = "Allow"	
+    protocol                   = "Tcp"	
+    source_port_range          = "*"	
+    destination_port_range     = "8080"	
+    source_address_prefix      = "*"	
+    destination_address_prefix = "*"
+  }
+
 }
 
 # Associate NSG with NIC

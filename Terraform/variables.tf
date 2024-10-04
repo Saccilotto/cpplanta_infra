@@ -1,5 +1,5 @@
 variable "resource_group_name" {
-  default = "cp-planta-rg"
+  default = "cp-planta-ages"
 }
 
 variable "location" {
