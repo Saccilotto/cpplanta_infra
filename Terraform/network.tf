@@ -128,7 +128,7 @@ resource "azurerm_network_security_group" "nsg" {
   }
 
   security_rule {
-    name                       = "AllowRunners"
+    name                       = "AllowSwarm"
     priority                   = 1008
     direction                  = "Inbound"
     access                     = "Allow"
