@@ -49,7 +49,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "TCP"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "2377"
     source_address_prefix      = "*"
@@ -62,7 +62,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "TCP"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "7946"
     source_address_prefix      = "*"
@@ -75,7 +75,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 120
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "UDP"
+    protocol                   = "Udp"
     source_port_range          = "*"
     destination_port_range     = "4789"
     source_address_prefix      = "*"
@@ -88,7 +88,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 130
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "TCP"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "5432"
     source_address_prefix      = "*"
@@ -101,7 +101,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 140
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "TCP"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "80"
     source_address_prefix      = "*"
@@ -114,7 +114,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 150
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "TCP"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "443"
     source_address_prefix      = "*"
@@ -127,7 +127,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 160
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "TCP"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3000"
     source_address_prefix      = "*"
@@ -140,7 +140,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 170
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "TCP"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3001"
     source_address_prefix      = "*"
@@ -153,7 +153,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 180
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "TCP"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
     source_address_prefix      = "*"
@@ -166,7 +166,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 190
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "TCP"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "80"
     source_address_prefix      = "*"
@@ -179,7 +179,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 200
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "TCP"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "443"
     source_address_prefix      = "*"
@@ -192,7 +192,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 210
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "TCP"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
     source_address_prefix      = "*"
