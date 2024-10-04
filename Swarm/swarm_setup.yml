@@ -39,128 +39,70 @@
       enabled: yes
     when: docker_installed is failed
 
-  # Inicialização do Swarm no Manager
-  - name: Verificar se o Docker Swarm já está ativo no Manager
+  # Inicializar o Swarm no nó manager (vm1) se ainda não estiver inicializado
+  - name: Verificar se o Docker Swarm está ativo no manager
     shell: docker info
     register: docker_info
-    delegate_to: "{{ groups['manager'][0] }}"
+    delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
-    ignore_errors: yes
 
-  - name: Inicializar o Swarm no Manager se ainda não estiver ativo
+  - name: Inicializar o Swarm no manager (vm1) se ainda não estiver ativo
     shell: docker swarm init --advertise-addr {{ ansible_host }}
-    when:
-      - docker_info.stdout is defined
-      - "'Swarm: inactive' in docker_info.stdout"
-    delegate_to: "{{ groups['manager'][0] }}"
-    run_once: true
-    ignore_errors: yes
-
-  - name: Capturar o token do Swarm para adicionar workers
-    shell: docker swarm join-token worker -q
-    when:
-      - docker_info is defined
-      - "'Swarm: active' in docker_info.stdout"
-    register: worker_token
-    delegate_to: "{{ groups['manager'][0] }}"
+    when: "'Swarm: inactive' in docker_info.stdout"
+    delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
 
-  - name: Verificar o status do Swarm nos Workers
-    shell: docker info
-    register: worker_swarm_info
-    delegate_to: "{{ item }}"
-    loop: "{{ groups['worker'] }}"
-    ignore_errors: yes
-
-  - name: Depurar informações do worker_swarm_info
-    debug:
-      var: >
-        worker_swarm_info.results
-        | selectattr('item', 'equalto', item)
-        | first
-    loop: "{{ groups['worker'] }}"
-
-  # Adicionar workers ao Swarm se necessário
-  - name: Adicionar workers ao Swarm se não estiverem no Swarm
-    shell: docker swarm join --token {{ worker_token.stdout }} {{ groups['manager'][0] }}:2377
-    delegate_to: "{{ item }}"
-    loop: "{{ groups['worker'] }}"
-    ignore_errors: no
-
-  # Obter a lista de nós no Swarm
-  - name: Obter a lista de nós no Swarm
-    shell: docker node ls --format '{{ "{{.ID}} {{.Hostname}}" }}'
-    delegate_to: "{{ groups['manager'][0] }}"
-    register: swarm_nodes
-
-  # Get node details (ID, IP, Hostname)
-  - name: Get node details
-    shell: docker node inspect --format '{{ "{{.ID}} {{.Status.Addr}} {{.Description.Hostname}}" }}' $(docker node ls -q)
-    delegate_to: "{{ groups['manager'][0] }}"
-    register: node_details
-
-  # Debug node details
-  - name: Debug node_details output
-    debug:
-      var: node_details.stdout_lines
-
-  # Obter a lista de IDs dos nós no Swarm
-  - name: Obter a lista de IDs dos nós no Swarm
-    shell: docker node ls --format '{{ "{{.ID}}" }}'
-    delegate_to: "{{ groups['manager'][0] }}"
-    register: node_ids
-
-  - name: Obter detalhes dos nós
-    shell: >
-      docker node inspect --format '{% raw %}{{.ID}} {{.Description.Hostname}}{% endraw %}' {{ item }}
-    delegate_to: "{{ groups['manager'][0] }}"
-    loop: "{{ node_ids.stdout_lines }}"
-    register: node_details
-
-  # Construir mapeamento de Hostnames para IDs de nós
-  - name: Construir mapeamento de Hostnames para IDs de nós
-    set_fact:
-      node_hostname_to_id: "{{ node_hostname_to_id | default({}) | combine({ item.stdout.split()[1]: item.stdout.split()[0] }) }}"
-    loop: "{{ node_details.results }}"
-
-  # Verificar o conteúdo de node_hostname_to_id
-  - name: Verificar o conteúdo de node_hostname_to_id
-    debug:
-      var: node_hostname_to_id
-
-  # Verificar ansible_hostname dos workers
-  - name: Verificar ansible_hostname dos workers
-    debug:
-      msg: "Worker {{ item }} tem ansible_hostname: {{ hostvars[item]['ansible_hostname'] }}"
-    loop: "{{ groups['worker'] }}"
-
-  # Aplicar rótulo de worker aos nós workers
-  - name: Aplicar rótulo de worker aos nós workers
-    shell: docker node update --label-add type=worker {{ node_hostname_to_id[hostvars[item]['ansible_hostname']] }}
-    delegate_to: "{{ groups['manager'][0] }}"
-    loop: "{{ groups['worker'] }}"
-    when: hostvars[item]['ansible_hostname'] in node_hostname_to_id
-
-  # Copiar e implantar o stack
-  - name: Copiar o arquivo stack.yml para o Manager
+  # Copiar e implantar o stack no nó manager (vm1)
+  - name: Copiar o arquivo stack.yml para o nó manager
     copy:
       src: ./stack.yml
       dest: /home/adminuser/stack.yml
-    delegate_to: "{{ groups['manager'][0] }}"
+    delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
 
-  - name: Executar o deploy do stack no Manager
+  - name: Executar o deploy do stack no nó manager
     shell: docker stack deploy -c /home/adminuser/stack.yml CP-Planta
-    delegate_to: "{{ groups['manager'][0] }}"
+    delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
 
-  - name: Verificar o status do stack
+  - name: Verificar o status do stack no nó manager
     shell: docker stack ps CP-Planta
-    delegate_to: "{{ groups['manager'][0] }}"
+    delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
 
-  - name: Gerar novos inventários para Ansible
-    local_action:
-      module: command
-      cmd: bash ./merge_ip.sh
-    become: no
+  # Checar conectividade na porta 3001 para o frontend
+  - name: Verificar se o frontend está acessível via porta 3001
+    wait_for:
+      host: "{{ ansible_host  }}"
+      port: 3001
+      state: started
+      timeout: 30
+    delegate_to: "{{ item }}"
+    loop: "{{ groups['all'] }}"
+    run_once: false
+
+  # Verificar se o frontend responde HTTP na porta 3001
+  - name: Verificar se o frontend responde HTTP na porta 3001
+    uri:
+      url: "http://{{ item }}:3001"
+      status_code: 200
+    loop: "{{ groups['all'] }}"
+    run_once: false
+
+  # Checar conectividade na porta 8080 para o pgAdmin
+  - name: Verificar se o pgAdmin está acessível via porta 8080
+    wait_for:
+      host: "{{ ansible_host  }}"
+      port: 80
+      state: started
+      timeout: 30
+    delegate_to: "{{ item }}"
+    loop: "{{ groups['all'] }}"
+    run_once: false
+
+  # Verificar se o pgAdmin responde HTTP na porta 8080
+  - name: Verificar se o pgAdmin responde HTTP na porta 80
+    uri:
+      url: "http://{{ item }}:80"
+      status_code: 200
+    loop: "{{ groups['all'] }}"
