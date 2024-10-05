@@ -38,6 +38,9 @@ services:
       replicas: 1
       restart_policy:
         condition: on-failure
+      placement:
+        constraints:
+          - node.hostname == vm1
     ports:
       - "5432:5432"
 
