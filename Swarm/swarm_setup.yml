@@ -79,7 +79,7 @@
   #     timeout: 30
   #   delegate_to: "{{ item }}"
   #   loop: "{{ groups['all'] }}"
-  #   run_once: false
+  #   ignore_errors: yes
 
   # # Verificar se o frontend responde HTTP na porta 3001
   # - name: Verificar se o frontend responde HTTP na porta 3001
@@ -87,7 +87,7 @@
   #     url: "http://{{ item }}:3001"
   #     status_code: 200
   #   loop: "{{ groups['all'] }}"
-  #   run_once: false
+  #   ignore_errors: yes
 
   # # Checar conectividade na porta 8080 para o pgAdmin
   # - name: Verificar se o pgAdmin está acessível via porta 8080
@@ -98,11 +98,13 @@
   #     timeout: 30
   #   delegate_to: "{{ item }}"
   #   loop: "{{ groups['all'] }}"
-  #   run_once: false
+  #   ignore_errors: yes
 
-  # # Verificar se o pgAdmin responde HTTP na porta 8080
+
+  # # Verificar se o pgAdmin responde HTTP na porta 80
   # - name: Verificar se o pgAdmin responde HTTP na porta 80
   #   uri:
   #     url: "http://{{ item }}:80"
   #     status_code: 200
   #   loop: "{{ groups['all'] }}"
+  #   ignore_errors: yes

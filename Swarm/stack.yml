@@ -38,8 +38,8 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@example.com
-      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_DEFAULT_EMAIL=fulano@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD=abc123
     depends_on:
       - database
     networks:
