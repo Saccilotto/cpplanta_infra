@@ -45,12 +45,24 @@
     register: docker_info
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
+    ignore_errors: yes
 
   - name: Inicializar o Swarm no manager (vm1) se ainda não estiver ativo
     shell: docker swarm init --advertise-addr {{ ansible_host }}
     when: "'Swarm: inactive' in docker_info.stdout"
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
+
+  # Recuperar o token para os workers se o Swarm foi inicializado
+  - name: Obter o token de junção para os workers
+    shell: docker swarm join-token worker -q
+    register: worker_join_token
+    delegate_to: "{{ groups['vm1'][0] }}"
+    run_once: true
+
+  - name: Juntar os workers ao Swarm
+    shell: docker swarm join --token {{ hostvars[groups['vm1'][0]].worker_join_token.stdout }} {{ hostvars[groups['vm1'][0]].inventory_hostname }}:2377
+    when: inventory_hostname != groups['vm1'][0]
 
   # Copiar e implantar o stack no nó manager (vm1)
   - name: Copiar o arquivo stack.yml para o nó manager
@@ -70,6 +82,7 @@
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
 
+
   # # Checar conectividade na porta 3001 para o frontend
   # - name: Verificar se o frontend está acessível via porta 3001
   #   wait_for:
@@ -79,7 +92,7 @@
   #     timeout: 30
   #   delegate_to: "{{ item }}"
   #   loop: "{{ groups['all'] }}"
-  #   ignore_errors: yes
+  #   run_once: false
 
   # # Verificar se o frontend responde HTTP na porta 3001
   # - name: Verificar se o frontend responde HTTP na porta 3001
@@ -87,7 +100,7 @@
   #     url: "http://{{ item }}:3001"
   #     status_code: 200
   #   loop: "{{ groups['all'] }}"
-  #   ignore_errors: yes
+  #   run_once: false
 
   # # Checar conectividade na porta 8080 para o pgAdmin
   # - name: Verificar se o pgAdmin está acessível via porta 8080
@@ -98,13 +111,11 @@
   #     timeout: 30
   #   delegate_to: "{{ item }}"
   #   loop: "{{ groups['all'] }}"
-  #   ignore_errors: yes
+  #   run_once: false
 
-
-  # # Verificar se o pgAdmin responde HTTP na porta 80
+  # # Verificar se o pgAdmin responde HTTP na porta 8080
   # - name: Verificar se o pgAdmin responde HTTP na porta 80
   #   uri:
   #     url: "http://{{ item }}:80"
   #     status_code: 200
   #   loop: "{{ groups['all'] }}"
-  #   ignore_errors: yes

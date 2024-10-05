@@ -21,9 +21,12 @@ services:
   database:
     image: norohim/cp-planta-database:latest
     environment:
-      - POSTGRES_USER_FILE=/run/secrets/postgres_user
-      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
-      - POSTGRES_DB_FILE=/run/secrets/postgres_db
+      - NODE_ENV=production
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=postgres
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -55,6 +58,7 @@ services:
     image: norohim/cp-planta-frontend:latest
     environment:
       - NODE_ENV=production
+      - PORT=3001     # forces next.js to use port 3001
     networks:
       - frontend_network
     deploy:
@@ -62,7 +66,7 @@ services:
       restart_policy:
         condition: on-failure
     ports:
-      - "3001:3001"
+      - "3001:3001"   
 
   runners:
     image: gitlab/gitlab-runner:latest

@@ -9,6 +9,6 @@ terraform destroy -auto-approve
 
 # Clean up generated files
 echo "Cleaning up generated files..."
-rm -f ../Ansible/inventory.ini
+rm -f ../Swarm/static_ip.ini
 
 echo "Infrastructure destroyed and cleaned up."

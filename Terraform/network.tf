@@ -43,7 +43,8 @@ resource "azurerm_network_security_group" "nsg" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
-  # Docker Swarm Manager
+
+  #Inbound rules
   security_rule {
     name                       = "allow-docker-swarm-manager"
     priority                   = 100
@@ -56,7 +57,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # Docker Swarm Node Communication
   security_rule {
     name                       = "allow-docker-swarm-communication"
     priority                   = 110
@@ -69,7 +69,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # Docker Swarm Overlay Network
   security_rule {
     name                       = "allow-docker-swarm-overlay-network"
     priority                   = 120
@@ -82,7 +81,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # PostgreSQL
   security_rule {
     name                       = "allow-postgresql"
     priority                   = 130
@@ -95,7 +93,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # pgAdmin HTTP
   security_rule {
     name                       = "allow-pgadmin"
     priority                   = 140
@@ -108,7 +105,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # pgAdmin HTTPS
   security_rule {
     name                       = "allow-pgadmin-https"
     priority                   = 150
@@ -121,7 +117,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # Backend Node.js (Port 3000)
   security_rule {
     name                       = "allow-backend-nodejs"
     priority                   = 160
@@ -134,7 +129,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # Frontend Node.js (Port 3001)
   security_rule {
     name                       = "allow-frontend-nodejs"
     priority                   = 170
@@ -147,7 +141,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # GitLab Runner SSH
   security_rule {
     name                       = "allow-gitlab-runner-ssh"
     priority                   = 180
@@ -160,7 +153,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # GitLab Runner HTTP
   security_rule {
     name                       = "allow-gitlab-runner-http"
     priority                   = 190
@@ -173,7 +165,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # GitLab Runner HTTPS
   security_rule {
     name                       = "allow-gitlab-runner-https"
     priority                   = 200
@@ -185,16 +176,52 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
-
-  # SSH access for VM management
+  
+  # Outbound rules
   security_rule {
-    name                       = "allow-ssh"
+    name                       = "allow-backend-nodejsOut"
     priority                   = 210
-    direction                  = "Inbound"
+    direction                  = "Outbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
-    destination_port_range     = "22"
+    destination_port_range     = "3000"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow-frontend-nodejsOut"
+    priority                   = 220
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3001"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow-pgadmin2"
+    priority                   = 230
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow-pgadmin-https2"
+    priority                   = 240
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }

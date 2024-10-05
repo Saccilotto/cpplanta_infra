@@ -6,7 +6,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   network_interface_ids = [
     azurerm_network_interface.nic[each.key].id,
   ]
-  size               = "Standard_B1s"
+  size               = "Standard_B2s"
   admin_username     = var.username
   disable_password_authentication = true
   
