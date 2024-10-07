@@ -6,7 +6,6 @@ variables:
   DOCKER_IMAGE_NODE: norohim/cp-planta-backend:latest
   DOCKER_IMAGE_POSTGRES: norohim/cp-planta-database:latest
   DOCKER_IMAGE_FRONTEND: norohim/cp-planta-frontend:latest
-  SHELL: /bin/bash  # Definindo o shell padrão como bash
 
 deploy:
   stage: deploy
@@ -21,6 +20,6 @@ deploy:
     - docker pull $DOCKER_IMAGE_FRONTEND
     # Executa o script de deploy da stack
     - chmod +x ./deploy.sh  # Certifique-se de que o script tenha permissão de execução
-    - sh ./deploy.sh  # Executa o script de deploy utilizando sh
+    - bash deploy.sh  # Executa o script de deploy utilizando sh
   only:
     - main  # Define que o job será executado apenas na branch main
