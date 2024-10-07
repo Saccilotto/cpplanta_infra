@@ -56,6 +56,7 @@
   - name: Juntar os workers ao Swarm
     shell: docker swarm join --token {{ hostvars[groups['vm1'][0]].worker_join_token.stdout }} {{ hostvars[groups['vm1'][0]].inventory_hostname }}:2377
     when: inventory_hostname != groups['vm1'][0]
+    ignore_errors: yes
 
   # Copiar e implantar o stack no nó manager (vm1)
   - name: Copiar o arquivo stack.yml para o nó manager
