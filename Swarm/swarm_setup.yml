@@ -67,6 +67,7 @@
       owner: gitlab-runner
       group: gitlab-runner
       mode: '0755'
+    become: yes
 
   # Verificar se o stack.yml está no nó manager
   - name: Copiar o arquivo stack.yml para o nó manager

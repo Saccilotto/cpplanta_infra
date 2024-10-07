@@ -4,28 +4,24 @@
   become_method: sudo  # Ensures sudo is used for privilege escalation
   remote_user: adminuser  # Ensure you're connecting as adminuser
   vars:
+    gitlab_runner_url: "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64"
     gitlab_runner_config_dir: "/etc/gitlab-runner"
-    gitlab_runner_path: "/srv/gitlab-runner/config"
+    gitlab_runner_path: "/usr/local/bin/gitlab-runner"
     gitlab_runner_registration_url: "{{ lookup('env', 'CI_SERVER_URL') }}"
     gitlab_runner_registration_token: "{{ lookup('env', 'RUNNER_TOKEN') }}"
-    gitlab_runner_executor: "bash"
+    gitlab_runner_executor: "docker"
     gitlab_runner_description: "Azure Runner VM on {{ ansible_host }}"
     gitlab_runner_tags: "azure, runner on {{ ansible_host }}"
     gitlab_runner_user: "gitlab-runner"
 
   tasks:
-    - name: Ensure gitlab-runner user exists
-      user:
-        name: "{{ gitlab_runner_user }}"
-        shell: /bin/bash
-        state: present
-        create_home: yes
+    - name: Download GitLab Runner binary
+      get_url:
+        url: "{{ gitlab_runner_url }}"
+        dest: "{{ gitlab_runner_path }}"
+        mode: '0755'
+      notify: restart gitlab-runner
 
-    - name: Adicionar o usuário gitlab-runner ao grupo docker
-      user: 
-        name: "{{ gitlab_runner_user }}"
-        groups: docker
-        append: yes
 
     - name: Ensure runner network is created
       docker_network:
@@ -41,13 +37,19 @@
         group: "{{ gitlab_runner_user }}"
       become: yes
 
-    - name: Ensure GitLab Runner path directory exists
+    - name: Create GitLab Runner config directory
       file:
-        path: "/srv/gitlab-runner/config"
+        path: "{{ gitlab_runner_config_dir }}"
         state: directory
-        mode: '0755'  # Or 0700 if more restricted access is required
-        owner: gitlab-runner
-        group: gitlab-runner
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
+        mode: '0755'
+    
+    - name: Adicionar o usuário gitlab-runner ao grupo docker
+      user: 
+        name: "{{ gitlab_runner_user }}"
+        groups: docker
+        append: yes
       become: yes
 
     - name: Register GitLab Runner
@@ -57,16 +59,27 @@
         --url "{{ gitlab_runner_registration_url }}"
         --registration-token "{{ gitlab_runner_registration_token }}"
         --executor "{{ gitlab_runner_executor }}"
+        --docker-image "alpine:latest"
         --description "{{ gitlab_runner_description }}"
         --tag-list "{{ gitlab_runner_tags }}"
         --run-untagged
         --locked=false
       become: yes
-      become_user: gitlab-runner
       environment:
-        HOME: "/home/gitlab-runner"
+        HOME: "/home/{{ gitlab_runner_user }}"
       args:
-        creates: "/srv/gitlab-runner/config/config.toml"
+        creates: "{{ gitlab_runner_config_dir }}/config.toml"
+
+        
+    - name: Check if GitLab Runner service exists
+      stat:
+        path: /etc/systemd/system/gitlab-runner.service
+      register: runner_service
+
+    - name: Install GitLab Runner service
+      command: "{{ gitlab_runner_path }} install --user {{ gitlab_runner_user }}"
+      when: not runner_service.stat.exists
+      notify: restart gitlab-runner
 
     - name: Ensure correct permissions for GitLab Runner config.toml
       file:
@@ -77,11 +90,11 @@
         group: "{{ gitlab_runner_user }}"
       become: yes
 
-    - name: Update GitLab Runner config.toml for bash executor
+    - name: Update GitLab Runner config.toml for docker executor
       lineinfile:
         path: "{{ gitlab_runner_config_dir }}/config.toml"
         regexp: '^  shell = '
-        line: '  shell = "/bin/bash"'
+        line: '  shell = "/bin/docker"'
         state: present
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
