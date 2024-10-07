@@ -1,0 +1,27 @@
+stages:
+  - deploy
+
+variables:
+  DOCKER_REGISTRY: docker.io
+  DOCKER_IMAGE_NODE: norokai/cp-planta-backend:latest
+  DOCKER_IMAGE_POSTGRES: norokai/cp-planta-database:latest
+  DOCKER_IMAGE_FRONTEND: norokai/cp-planta-frontend:latest
+
+# before_script:
+#   # Docker login e configuração do Swarm
+#   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" $DOCKER_REGISTRY
+#   - docker swarm init --advertise-addr $SWARM_MANAGER || true
+#   - docker node ls  # Verifica o status do Swarm
+
+deploy:
+  stage: deploy
+  script:
+    # Faz o pull das imagens para o Swarm
+    - docker pull $DOCKER_IMAGE_NODE
+    - docker pull $DOCKER_IMAGE_POSTGRES
+    - docker pull $DOCKER_IMAGE_FRONTEND
+    # Executa o script de deploy da stack
+    - chmod +x ./deploy.sh  # Certifique-se de que o script tenha permissão de execução
+    - ./deploy.sh  # Executa o script de deploy que está no repositório
+  only:
+    - main

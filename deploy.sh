@@ -26,13 +26,13 @@ cd Swarm/
 echo "Deploying Docker Swarm stack..."
 ANSIBLE_CONFIG=./ansible.cfg ansible-playbook -i ./static_ip.ini ./swarm_setup.yml
 
-sleep 5
+# sleep 5
 
-# cd ..
-# cd Configuration/
+cd ..
+#  cd Configuration/
 
-# Navigate to Ansible directory and run playbook
-# echo "Running Ansible runners playbook..."
+#  Navigate to Ansible directory and run playbook
+#  echo "Running Ansible runners playbook..."
 # ./run_config.sh
 
 echo "Deployment complete."
