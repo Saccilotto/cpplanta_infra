@@ -2,6 +2,7 @@
 
 set -e
 
+
 # Set project vars
 export $(grep -v '^#' ../.env | xargs)
 

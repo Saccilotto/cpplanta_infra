@@ -4,40 +4,33 @@
   become: yes
   tasks:
 
+  - name: Ensure dependencies are installed
+    apt:
+      name: 
+        - curl
+        - ca-certificates
+        - git
+      state: present
+      update_cache: yes
+  
+  - name: Ensure Docker is installed on all nodes
+    apt:
+      name: 
+        - docker.io
+        - containerd
+      state: present
+      update_cache: yes
+
   - name: Verificar se o Docker está instalado
     command: docker --version
     ignore_errors: yes
     register: docker_installed
 
-  - name: Adicionar chave GPG do Docker
-    apt_key:
-      url: https://download.docker.com/linux/ubuntu/gpg
-      state: present
-    when: docker_installed is failed
-
-  - name: Adicionar repositório oficial do Docker para Ubuntu Server
-    apt_repository:
-      repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-      state: present
-    when: docker_installed is failed
-
-  - name: Atualizar cache do APT
-    apt:
-      update_cache: yes
-    when: docker_installed is failed
-
-  - name: Instalar Docker no Ubuntu Server
-    apt:
-      name: docker-ce
-      state: present
-    when: docker_installed is failed
-
-  - name: Iniciar e habilitar o Docker
-    service:
-      name: docker
-      state: started
-      enabled: yes
-    when: docker_installed is failed
+  - name: Adicionar o usuário ao grupo docker
+    user:
+      name: adminuser
+      groups: docker
+      append: yes
 
   # Inicializar o Swarm no nó manager (vm1) se ainda não estiver inicializado
   - name: Verificar se o Docker Swarm está ativo no manager

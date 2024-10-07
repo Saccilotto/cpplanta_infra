@@ -2,73 +2,104 @@
 - hosts: all
   become: yes
   vars:
-    gitlab_runner_image: "gitlab/gitlab-runner:latest"
-    gitlab_runner_service_name: "gitlab-runner"
-    gitlab_runner_volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "/srv/gitlab-runner/config:/etc/gitlab-runner"
-    gitlab_runner_environment:
-      CI_SERVER_URL: "{{ lookup('env', 'CI_SERVER_URL') }}"
-      RUNNER_TOKEN: "{{ lookup('env', 'RUNNER_TOKEN') }}"
+    gitlab_runner_config_dir: "/etc/gitlab-runner"
+    gitlab_runner_path: "/usr/local/bin/gitlab-runner"
+    gitlab_runner_registration_url: "{{ lookup('env', 'CI_SERVER_URL') }}"
+    gitlab_runner_registration_token: "{{ lookup('env', 'RUNNER_TOKEN') }}"
+    gitlab_runner_executor: "bash"
+    gitlab_runner_description: "Azure Runner VM on {{ ansible_host }}"
+    gitlab_runner_tags: "azure, runner on {{ ansible_host }}"
+    gitlab_runner_user: "gitlab-runner"
 
   tasks:
-    - name: Ensure Docker is installed on all nodes
-      apt:
-        name: 
-          - docker.io
+    - name: Ensure gitlab-runner user exists
+      user:
+        name: "{{ gitlab_runner_user }}"
+        shell: /bin/bash
         state: present
-        update_cache: yes
+        create_home: yes
 
-    - name: Create GitLab Runner config directory on host
+    - name: Adicionar o usuário gitlab-runner ao grupo docker
+      user: 
+        name: "{{ gitlab_runner_user }}"
+        groups: docker
+        append: yes
+
+    - name: Create GitLab Runner config directory
       file:
         path: "/srv/gitlab-runner/config"
         state: directory
         mode: '0755'
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
 
-    - name: Deploy GitLab Runner on Docker Swarm
-      docker_service:
-        project_name: "{{ gitlab_runner_service_name }}"
-        definition:
-          version: '3.8'
-          services:
-            runner:
-              image: "{{ gitlab_runner_image }}"
-              environment:
-                - CI_SERVER_URL={{ gitlab_runner_environment.CI_SERVER_URL }}
-                - RUNNER_TOKEN={{ gitlab_runner_environment.RUNNER_TOKEN }}
-              volumes:
-                - "{{ gitlab_runner_volumes[0] }}"
-                - "{{ gitlab_runner_volumes[1] }}"
-              deploy:
-                mode: replicated
-                replicas: 4
-                restart_policy:
-                  condition: on-failure
-        networks:
-          - runner_network
+    - name: Create GitLab Runner config directory
+      file:
+        path: "{{ gitlab_runner_config_dir }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
 
     - name: Ensure runner network is created
       docker_network:
         name: runner_network
         state: present
 
-    - name: Set concurrent = 2 in config.toml
-      lineinfile:
-        path: "/srv/gitlab-runner/config/config.toml"
-        regexp: '^concurrent = '
-        line: 'concurrent = 2'
-        state: present
+    - name: Register GitLab Runner
+      command: >
+        {{ gitlab_runner_path }} register
+        --non-interactive
+        --url "{{ gitlab_runner_registration_url }}"
+        --registration-token "{{ gitlab_runner_registration_token }}"
+        --executor "{{ gitlab_runner_executor }}"
+        --description "{{ gitlab_runner_description }}"
+        --tag-list "{{ gitlab_runner_tags }}"
+        --run-untagged
+        --locked=false
+      become: yes
+      become_user: "{{ gitlab_runner_user }}"
+      environment:
+        HOME: "/home/{{ gitlab_runner_user }}"
+      args:
+        creates: "{{ gitlab_runner_config_dir }}/config.toml"
 
     - name: Update GitLab Runner config.toml for bash executor
       lineinfile:
-        path: "/srv/gitlab-runner/config/config.toml"
+        path: "{{ gitlab_runner_config_dir }}/config.toml"
         regexp: '^  shell = '
         line: '  shell = "/bin/bash"'
         state: present
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
 
     - name: Set disable_profile_loading to true in config.toml
       lineinfile:
-        path: "/srv/gitlab-runner/config/config.toml"
+        path: "{{ gitlab_runner_config_dir }}/config.toml"
         regexp: '^  disable_profile_loading = '
         line: '  disable_profile_loading = true'
         state: present
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
+
+    - name: Check if GitLab Runner service exists
+      stat:
+        path: /etc/systemd/system/gitlab-runner.service
+      register: runner_service
+
+    - name: Install GitLab Runner service
+      command: "{{ gitlab_runner_path }} install --user {{ gitlab_runner_user }}"
+      when: not runner_service.stat.exists
+      notify: restart gitlab-runner
+
+    - name: Start GitLab Runner service
+      systemd:
+        name: gitlab-runner
+        state: started
+        enabled: true
+
+  handlers:
+    - name: restart gitlab-runner
+      service:
+        name: gitlab-runner
+        state: restarted
