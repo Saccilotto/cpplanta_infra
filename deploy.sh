@@ -32,8 +32,8 @@ cd ..
 
 cd Configuration/
 
- Navigate to Ansible directory and run playbook
- echo "Running Ansible runners playbook..."
+Navigate to Ansible directory and run playbook
+echo "Running Ansible runners playbook..."
 ./run_config.sh
 
 echo "Deployment complete."
