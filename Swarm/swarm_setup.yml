@@ -4,6 +4,12 @@
   become: yes
   tasks:
 
+  # Altere o shell padrão para /bin/sh (preferido por gitlab-runner)
+  - name: Alterar o terminal padrão para /bin/sh
+    user:
+      name: "{{ ansible_user_id }}"  # ou especifique o usuário desejado
+      shell: /bin/sh
+
   - name: Verificar se o Docker está instalado
     command: docker --version
     ignore_errors: yes
