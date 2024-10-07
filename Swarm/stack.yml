@@ -1,48 +1,48 @@
 version: "3.8"
 services:
-  backend:
-    image: norohim/cp-planta-backend:latest
-    environment:
-      - NODE_ENV=production
-      - DB_HOST=database
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=postgres
-    networks:
-      - backend_network
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-    ports:
-      - "3000:3000"
+  # backend:
+  #   image: norohim/cp-planta-backend:latest
+  #   environment:
+  #     - NODE_ENV=production
+  #     - DB_HOST=database
+  #     - DB_PORT=5432
+  #     - DB_USER=postgres
+  #     - DB_PASSWORD=postgres
+  #     - DB_NAME=postgres
+  #   networks:
+  #     - backend_network
+  #   deploy:
+  #     replicas: 1
+  #     restart_policy:
+  #       condition: on-failure
+  #   ports:
+  #     - "3000:3000"
 
-  database:
-    image: norohim/cp-planta-database:latest
-    environment:
-      - NODE_ENV=production
-      - DB_HOST=database
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    networks:
-      - backend_network
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints:
-          - node.hostname == vm1
-    ports:
-      - "5432:5432"
+  # database:
+  #   image: norohim/cp-planta-database:latest
+  #   environment:
+  #     - NODE_ENV=production
+  #     - DB_HOST=database
+  #     - DB_PORT=5432
+  #     - DB_USER=postgres
+  #     - DB_PASSWORD=postgres
+  #     - DB_NAME=postgres
+  #     - POSTGRES_PASSWORD=postgres
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_DB=postgres
+  #   volumes:
+  #     - db_data:/var/lib/postgresql/data
+  #   networks:
+  #     - backend_network
+  #   deploy:
+  #     replicas: 1
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints:
+  #         - node.hostname == vm1
+  #   ports:
+  #     - "5432:5432"
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -85,19 +85,27 @@ services:
     networks:
       - runner_network
     deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "2G"
+        reservations:
+          cpus: "0.5"
+          memory: "1G"
       mode: replicated
-      replicas: 2
+      replicas: 4
       restart_policy:
         condition: on-failure
+
         
 networks:
-  backend_network:
-    driver: overlay
-  frontend_network:
-    driver: overlay
+  # backend_network:
+  #   driver: overlay
+  # frontend_network:
+  #   driver: overlay
   runner_network:
     driver: overlay
 
-volumes:
-  db_data:
-    driver: local
+# volumes:
+#   db_data:
+#     driver: local
