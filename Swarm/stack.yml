@@ -44,35 +44,35 @@ services:
   #   ports:
   #     - "5432:5432"
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=fulano@gmail.com
-      - PGADMIN_DEFAULT_PASSWORD=abc123
-    depends_on:
-      - database
-    networks:
-      - backend_network
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-    ports:
-      - "80:80"  
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   environment:
+  #     - PGADMIN_DEFAULT_EMAIL=fulano@gmail.com
+  #     - PGADMIN_DEFAULT_PASSWORD=abc123
+  #   depends_on:
+  #     - database
+  #   networks:
+  #     - backend_network
+  #   deploy:
+  #     replicas: 1
+  #     restart_policy:
+  #       condition: on-failure
+  #   ports:
+  #     - "80:80"  
 
-  frontend:
-    image: norohim/cp-planta-frontend:latest
-    environment:
-      - NODE_ENV=production
-      - PORT=3001     # forces next.js to use port 3001
-    networks:
-      - frontend_network
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-    ports:
-      - "3001:3001"   
+  # frontend:
+  #   image: norohim/cp-planta-frontend:latest
+  #   environment:
+  #     - NODE_ENV=production
+  #     - PORT=3001     # forces next.js to use port 3001
+  #   networks:
+  #     - frontend_network
+  #   deploy:
+  #     replicas: 1
+  #     restart_policy:
+  #       condition: on-failure
+  #   ports:
+  #     - "3001:3001"   
 
   runners:
     image: gitlab/gitlab-runner:latest
