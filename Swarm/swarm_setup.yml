@@ -10,6 +10,7 @@
         - curl
         - ca-certificates
         - git
+        - acl
       state: present
       update_cache: yes
   
@@ -58,7 +59,16 @@
     when: inventory_hostname != groups['vm1'][0]
     ignore_errors: yes
 
-  # Copiar e implantar o stack no nó manager (vm1)
+  # Validar o diretório de configuração do GitLab Runner e permissões
+  - name: Ensure /srv/gitlab-runner/config directory exists and is owned by gitlab-runner
+    file:
+      path: /srv/gitlab-runner/config
+      state: directory
+      owner: gitlab-runner
+      group: gitlab-runner
+      mode: '0755'
+
+  # Verificar se o stack.yml está no nó manager
   - name: Copiar o arquivo stack.yml para o nó manager
     copy:
       src: ./stack.yml
@@ -66,17 +76,35 @@
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
 
+  # Executar o deploy do stack no nó manager
   - name: Executar o deploy do stack no nó manager
     shell: docker stack deploy -c /home/adminuser/stack.yml CP-Planta
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
+    ignore_errors: yes
 
+  - name: Verificar o volume montado no container runner
+    command: docker service inspect CP-Planta_runners --format='{{ "{{ .Spec.TaskTemplate.ContainerSpec.Mounts }}" }}'
+    register: service_info
+    delegate_to: "{{ groups['vm1'][0] }}"  # Execute no nó manager
+    run_once: true  # Execute apenas uma vez no nó manager
+
+  - name: Mostrar informações de volumes do serviço runners
+    debug:
+      var: service_info.stdout
+
+  # Reiniciar o serviço runner para forçar a montagem correta do volume, se necessário
+  - name: Forçar reinício do serviço runners
+    shell: docker service update --force CP-Planta_runners
+    delegate_to: "{{ groups['vm1'][0] }}"
+    run_once: true
+
+  # Verificar o status do stack no nó manager
   - name: Verificar o status do stack no nó manager
     shell: docker stack ps CP-Planta
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
-
-
+    
   # # Checar conectividade na porta 3001 para o frontend
   # - name: Verificar se o frontend está acessível via porta 3001
   #   wait_for:

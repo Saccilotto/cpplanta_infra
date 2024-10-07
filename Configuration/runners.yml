@@ -1,9 +1,11 @@
 ---
 - hosts: all
   become: yes
+  become_method: sudo  # Ensures sudo is used for privilege escalation
+  remote_user: adminuser  # Ensure you're connecting as adminuser
   vars:
     gitlab_runner_config_dir: "/etc/gitlab-runner"
-    gitlab_runner_path: "/usr/local/bin/gitlab-runner"
+    gitlab_runner_path: "/srv/gitlab-runner/config"
     gitlab_runner_registration_url: "{{ lookup('env', 'CI_SERVER_URL') }}"
     gitlab_runner_registration_token: "{{ lookup('env', 'RUNNER_TOKEN') }}"
     gitlab_runner_executor: "bash"
@@ -25,13 +27,10 @@
         groups: docker
         append: yes
 
-    - name: Create GitLab Runner config directory
-      file:
-        path: "/srv/gitlab-runner/config"
-        state: directory
-        mode: '0755'
-        owner: "{{ gitlab_runner_user }}"
-        group: "{{ gitlab_runner_user }}"
+    - name: Ensure runner network is created
+      docker_network:
+        name: runner_network
+        state: present
 
     - name: Create GitLab Runner config directory
       file:
@@ -40,11 +39,16 @@
         mode: '0755'
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
+      become: yes
 
-    - name: Ensure runner network is created
-      docker_network:
-        name: runner_network
-        state: present
+    - name: Ensure GitLab Runner path directory exists
+      file:
+        path: "/srv/gitlab-runner/config"
+        state: directory
+        mode: '0755'  # Or 0700 if more restricted access is required
+        owner: gitlab-runner
+        group: gitlab-runner
+      become: yes
 
     - name: Register GitLab Runner
       command: >
@@ -58,11 +62,20 @@
         --run-untagged
         --locked=false
       become: yes
-      become_user: "{{ gitlab_runner_user }}"
+      become_user: gitlab-runner
       environment:
-        HOME: "/home/{{ gitlab_runner_user }}"
+        HOME: "/home/gitlab-runner"
       args:
-        creates: "{{ gitlab_runner_config_dir }}/config.toml"
+        creates: "/srv/gitlab-runner/config/config.toml"
+
+    - name: Ensure correct permissions for GitLab Runner config.toml
+      file:
+        path: "{{ gitlab_runner_config_dir }}/config.toml"
+        state: file
+        mode: '0644'  # Or use '0600' for more security
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
+      become: yes
 
     - name: Update GitLab Runner config.toml for bash executor
       lineinfile:
