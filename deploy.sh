@@ -29,10 +29,11 @@ ANSIBLE_CONFIG=./ansible.cfg ansible-playbook -i ./static_ip.ini ./swarm_setup.y
 # sleep 5
 
 cd ..
-#  cd Configuration/
 
-#  Navigate to Ansible directory and run playbook
-#  echo "Running Ansible runners playbook..."
-# ./run_config.sh
+cd Configuration/
+
+ Navigate to Ansible directory and run playbook
+ echo "Running Ansible runners playbook..."
+./run_config.sh
 
 echo "Deployment complete."
