@@ -5,20 +5,20 @@ set -e
 # Set project vars
 export $(grep -v '^#' .env | xargs)
 
-# Navigate to Terraform directory and initialize Terraform
-echo "Initializing Terraform..."
-cd Terraform/
-terraform init
+# # Navigate to Terraform directory and initialize Terraform
+# echo "Initializing Terraform..."
+# cd Terraform/
+# terraform init
 
-# Apply Terraform configuration
-echo "Applying Terraform configuration..."
-terraform apply -auto-approve
+# # Apply Terraform configuration
+# echo "Applying Terraform configuration..."
+# terraform apply -auto-approve
 
-cd ..
+# cd ..
 
 # Sleep for instances to boot up
-echo "Waiting for instances to boot up..."
-sleep 7
+# # echo "Waiting for instances to boot up..."
+# sleep 7
 
 cd Swarm/
 
@@ -28,8 +28,8 @@ ANSIBLE_CONFIG=./ansible.cfg ansible-playbook -i ./static_ip.ini ./swarm_setup.y
 
 sleep 5
 
-cd ..
-cd Configuration/
+# cd ..
+# cd Configuration/
 
 # Navigate to Ansible directory and run playbook
 # echo "Running Ansible runners playbook..."
