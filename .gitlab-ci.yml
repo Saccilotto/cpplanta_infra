@@ -7,6 +7,18 @@ variables:
   DOCKER_IMAGE_POSTGRES: norohim/cp-planta-database:latest
   DOCKER_IMAGE_FRONTEND: norohim/cp-planta-frontend:latest
 
+default:
+  image: alpine:latest  # Usando Alpine como base
+  services:
+    - docker:dind  # Docker in Docker
+
+before_script:
+  - apk add --no-cache docker  # Instala o Docker no Alpine
+  - rc-update add docker boot  # Configura o Docker para iniciar
+  - service docker start  # Inicia o serviço Docker
+  - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" $DOCKER_REGISTRY
+  - npm ci  # Instala as dependências do Node.js
+
 deploy:
   stage: deploy
   script:
