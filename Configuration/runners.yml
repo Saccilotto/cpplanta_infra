@@ -1,8 +1,6 @@
 ---
 - hosts: all
   become: yes
-  become_method: sudo  # Ensures sudo is used for privilege escalation
-  remote_user: adminuser  # Ensure you're connecting as adminuser
   vars:
     gitlab_runner_url: "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64"
     gitlab_runner_config_dir: "/etc/gitlab-runner"
@@ -15,14 +13,6 @@
     gitlab_runner_user: "gitlab-runner"
 
   tasks:
-    - name: Download GitLab Runner binary
-      get_url:
-        url: "{{ gitlab_runner_url }}"
-        dest: "{{ gitlab_runner_path }}"
-        mode: '0755'
-      notify: restart gitlab-runner
-
-
     - name: Ensure runner network is created
       docker_network:
         name: runner_network
@@ -37,9 +27,16 @@
         group: "{{ gitlab_runner_user }}"
       become: yes
 
-    - name: Create GitLab Runner config directory
+    - name: Download GitLab Runner binary
+      get_url:
+        url: "{{ gitlab_runner_url }}"
+        dest: "{{ gitlab_runner_path }}"
+        mode: '0755'
+      notify: restart gitlab-runner
+
+    - name: Create GitLab Runner path directory
       file:
-        path: "{{ gitlab_runner_config_dir }}"
+        path: "{{ gitlab_runner_path }}"
         state: directory
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
@@ -58,7 +55,7 @@
         --non-interactive
         --url "{{ gitlab_runner_registration_url }}"
         --registration-token "{{ gitlab_runner_registration_token }}"
-        --executor "{{ gitlab_runner_executor }}"
+        --executor "docker"
         --docker-image "alpine:latest"
         --description "{{ gitlab_runner_description }}"
         --tag-list "{{ gitlab_runner_tags }}"
@@ -69,7 +66,6 @@
         HOME: "/home/{{ gitlab_runner_user }}"
       args:
         creates: "{{ gitlab_runner_config_dir }}/config.toml"
-
         
     - name: Check if GitLab Runner service exists
       stat:
@@ -85,7 +81,7 @@
       file:
         path: "{{ gitlab_runner_config_dir }}/config.toml"
         state: file
-        mode: '0644'  # Or use '0600' for more security
+        mode: '0644'  
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
       become: yes
