@@ -1,0 +1,4 @@
+[vm1]
+<your-ip1> ansible_ssh_user=<your-user1> ansible_ssh_private_key_file=<path-pem1>
+[vm2]
+<your-ip2> ansible_ssh_user=<your-user2> ansible_ssh_private_key_file=<path-pem2> 

@@ -3,9 +3,12 @@ stages:
 
 variables:
   DOCKER_REGISTRY: docker.io
-  DOCKER_IMAGE_NODE: norohim/cp-planta-backend:latest
-  DOCKER_IMAGE_POSTGRES: norohim/cp-planta-database:latest
-  DOCKER_IMAGE_FRONTEND: norohim/cp-planta-frontend:latest
+  SSH_USER1: $SSH_USER1  # Nome do usuário SSH
+  SSH_USER2: $SSH_USER2  # Nome do usuário SSH
+  STATIC_IP_1: $STATIC_IP_1  # Primeiro IP estático
+  STATIC_IP_2: $STATIC_IP_2  # Segundo IP estático
+  PEM_FILE_PATH1: ssh_keys/vm1.pem  # Caminho do arquivo PEM para a primeira VM
+  PEM_FILE_PATH2: ssh_keys/vm2.pem  # Caminho do arquivo PEM para a segunda VM 
 
 default:
   image: alpine:latest  # Usando Alpine como base
@@ -13,25 +16,27 @@ default:
     - docker:dind  # Docker in Docker
 
 before_script:
+  - echo "$PEM_FILE_CONTENT1" > ssh_keys/vm1.pem  # Recupera o conteúdo do arquivo PEM 1 de uma variável de ambiente
+  - echo "$PEM_FILE_CONTENT2" > ssh_keys/vm2.pem  # Recupera o conteúdo do arquivo PEM 2 de uma variável de ambiente
+  - chmod 600 ssh_keys/vm1.pem ssh_keys/vm2.pem  # Ajusta as permissões dos arquivos PEM
+  - apk add --no-cache docker ansible openssh  # Instalar Docker, Ansible e SSH
+  - apk add --no-cache python3 py3-pip  # Se o script utilizar Python
   - apk add --no-cache docker  # Instala o Docker no Alpine
-  - rc-update add docker boot  # Configura o Docker para iniciar
-  - service docker start  # Inicia o serviço Docker
-  - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" $DOCKER_REGISTRY
-  - npm ci  # Instala as dependências do Node.js
 
 deploy:
   stage: deploy
   script:
-    # Login no Docker e configuração do Docker Swarm
-    - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" $DOCKER_REGISTRY
-    - docker swarm init --advertise-addr $SWARM_MANAGER || true
-    - docker node ls  # Verifica o status do Swarm
-    # Faz o pull das imagens para o Swarm
-    - docker pull $DOCKER_IMAGE_NODE
-    - docker pull $DOCKER_IMAGE_POSTGRES
-    - docker pull $DOCKER_IMAGE_FRONTEND
-    # Executa o script de deploy da stack
-    - chmod +x ./deploy.sh  # Certifique-se de que o script tenha permissão de execução
-    - bash deploy.sh  # Executa o script de deploy utilizando sh
+    # Modifica o arquivo static_ip.ini.example de acordo com as variáveis de ambiente
+    - cp static_ip.ini.example static_ip.ini  # Faz uma cópia do arquivo de exemplo
+    - sed -i "s|<your-ip1>|$STATIC_IP_1|" static_ip.ini  # Substitui o primeiro IP estático
+    - sed -i "s|<your-ip2>|$STATIC_IP_2|" static_ip.ini  # Substitui o segundo IP estático
+    - sed -i "s|<your-user1>|$SSH_USER1|" static_ip.ini  # Substitui o usuário SSH
+    - sed -i "s|<your-user2>|$SSH_USER1|" static_ip.ini  # Substitui o usuário SSH
+    - sed -i "s|<path-pem1>|$PEM_FILE_PATH1|" static_ip.ini  # Substitui o caminho do arquivo PEM
+    - sed -i "s|<path-pem2>|$PEM_FILE_PATH2|" static_ip.ini  # Substitui o caminho do arquivo PEM
+    # Certifique-se de que o script de deploy tenha permissão de execução
+    - chmod +x ./deploy.sh
+    # Executa o script de deploy
+    - bash deploy.sh
   only:
     - main  # Define que o job será executado apenas na branch main
