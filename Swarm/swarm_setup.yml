@@ -24,8 +24,9 @@
 
   - name: Verificar se o Docker está instalado
     command: docker --version
-    ignore_errors: yes
     register: docker_installed
+    failed_when: docker_installed.rc != 0
+    ignore_errors: yes  
 
   - name: Adicionar o usuário ao grupo docker
     user:
@@ -33,112 +34,78 @@
       groups: docker
       append: yes
 
-  # Inicializar o Swarm no nó manager (vm1) se ainda não estiver inicializado
+  # Step 1: Verificar se o Docker Swarm está ativo no manager (vm1)
   - name: Verificar se o Docker Swarm está ativo no manager
     shell: docker info
     register: docker_info
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
+    failed_when: false  # Do not fail even if Docker Swarm is not active
     ignore_errors: yes
 
+  # Step 2: Inicializar o Swarm no manager (vm1) se ainda não estiver ativo
   - name: Inicializar o Swarm no manager (vm1) se ainda não estiver ativo
     shell: docker swarm init --advertise-addr {{ ansible_host }}
     when: "'Swarm: inactive' in docker_info.stdout"
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
+    ignore_errors: yes  
 
-  # Recuperar o token para os workers se o Swarm foi inicializado
+  # Step 3: Obter o token de junção para os workers
   - name: Obter o token de junção para os workers
     shell: docker swarm join-token worker -q
     register: worker_join_token
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
+    when: "'Swarm: active' in docker_info.stdout"
+    ignore_errors: yes  
 
-  - name: Juntar os workers ao Swarm
-    shell: docker swarm join --token {{ hostvars[groups['vm1'][0]].worker_join_token.stdout }} {{ hostvars[groups['vm1'][0]].inventory_hostname }}:2377
-    when: inventory_hostname != groups['vm1'][0]
+  # Step 4: Juntar os workers ao Swarm
+  - name: Join Docker Swarm as worker
+    shell: "docker swarm join --token {{ hostvars[groups['vm1'][0]].worker_join_token.stdout }} {{ hostvars[groups['vm1'][0]].inventory_hostname }}:2377"
+    when: >
+      inventory_hostname != groups['vm1'][0] and
+      "'Swarm: active' in docker_info.stdout"
     ignore_errors: yes
 
-  # Validar o diretório de configuração do GitLab Runner e permissões
-  - name: Ensure /srv/gitlab-runner/config directory exists and is owned by gitlab-runner
-    file:
-      path: /srv/gitlab-runner/config
-      state: directory
-      owner: gitlab-runner
-      group: gitlab-runner
-      mode: '0755'
-    become: yes
-
-  # Verificar se o stack.yml está no nó manager
+  # Step 6: Copiar o arquivo stack.yml para o nó manager
   - name: Copiar o arquivo stack.yml para o nó manager
     copy:
       src: ./stack.yml
       dest: /home/adminuser/stack.yml
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
+    ignore_errors: yes  # Ignore errors if already copied
 
-  # Executar o deploy do stack no nó manager
+  # Step 7: Executar o deploy do stack no nó manager
   - name: Executar o deploy do stack no nó manager
     shell: docker stack deploy -c /home/adminuser/stack.yml CP-Planta
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
-    ignore_errors: yes
+    when: "'Swarm: active' in docker_info.stdout"
+    ignore_errors: yes  
 
+  # Step 8: Verificar o volume montado no container runner
   - name: Verificar o volume montado no container runner
     command: docker service inspect CP-Planta_runners --format='{{ "{{ .Spec.TaskTemplate.ContainerSpec.Mounts }}" }}'
     register: service_info
-    delegate_to: "{{ groups['vm1'][0] }}"  # Execute no nó manager
-    run_once: true  # Execute apenas uma vez no nó manager
+    delegate_to: "{{ groups['vm1'][0] }}"
+    run_once: true
 
   - name: Mostrar informações de volumes do serviço runners
     debug:
       var: service_info.stdout
 
-  # Reiniciar o serviço runner para forçar a montagem correta do volume, se necessário
+  # Step 9: Forçar reinício do serviço runners, se necessário
   - name: Forçar reinício do serviço runners
     shell: docker service update --force CP-Planta_runners
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
+    ignore_errors: yes  
 
-  # Verificar o status do stack no nó manager
+  # Step 10: Verificar o status do stack no nó manager
   - name: Verificar o status do stack no nó manager
     shell: docker stack ps CP-Planta
     delegate_to: "{{ groups['vm1'][0] }}"
     run_once: true
-    
-  # # Checar conectividade na porta 3001 para o frontend
-  # - name: Verificar se o frontend está acessível via porta 3001
-  #   wait_for:
-  #     host: "{{ ansible_host  }}"
-  #     port: 3001
-  #     state: started
-  #     timeout: 30
-  #   delegate_to: "{{ item }}"
-  #   loop: "{{ groups['all'] }}"
-  #   run_once: false
-
-  # # Verificar se o frontend responde HTTP na porta 3001
-  # - name: Verificar se o frontend responde HTTP na porta 3001
-  #   uri:
-  #     url: "http://{{ item }}:3001"
-  #     status_code: 200
-  #   loop: "{{ groups['all'] }}"
-  #   run_once: false
-
-  # # Checar conectividade na porta 8080 para o pgAdmin
-  # - name: Verificar se o pgAdmin está acessível via porta 8080
-  #   wait_for:
-  #     host: "{{ ansible_host  }}"
-  #     port: 80
-  #     state: started
-  #     timeout: 30
-  #   delegate_to: "{{ item }}"
-  #   loop: "{{ groups['all'] }}"
-  #   run_once: false
-
-  # # Verificar se o pgAdmin responde HTTP na porta 8080
-  # - name: Verificar se o pgAdmin responde HTTP na porta 80
-  #   uri:
-  #     url: "http://{{ item }}:80"
-  #     status_code: 200
-  #   loop: "{{ groups['all'] }}"
+    ignore_errors: yes  

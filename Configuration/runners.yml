@@ -18,14 +18,22 @@
         name: runner_network
         state: present
 
+    - name: Ensure gitlab-runner user exists
+      ansible.builtin.user:
+        name: "{{ gitlab_runner_user }}"
+        state: present
+        system: yes
+      become: yes
+
     - name: Create GitLab Runner config directory
       file:
         path: "{{ gitlab_runner_config_dir }}"
         state: directory
         mode: '0755'
-        owner: "{{ gitlab_runner_user }}"
-        group: "{{ gitlab_runner_user }}"
+        owner: gitlab-runner
+        group: gitlab-runner
       become: yes
+      ignore_errors: yes
 
     - name: Download GitLab Runner binary
       get_url:
@@ -41,6 +49,8 @@
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
         mode: '0755'
+      become: yes
+      ignore_errors: yes
     
     - name: Adicionar o usuário gitlab-runner ao grupo docker
       user: 
