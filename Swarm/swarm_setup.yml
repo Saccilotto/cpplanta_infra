@@ -50,20 +50,20 @@
     become: yes
     ignore_errors: yes
 
-  # Step 1: Verificar se o Docker Swarm está ativo no manager (vm1)
+  # Step 1: Verificar se o Docker Swarm está ativo no manager (CPPlanta1)
   - name: Verificar se o Docker Swarm está ativo no manager
     shell: docker info
     register: docker_info
-    delegate_to: "{{ groups['vm1'][0] }}"
+    delegate_to: "{{ groups['CPPlanta1'][0] }}"
     run_once: true
     failed_when: false  # Do not fail even if Docker Swarm is not active
     ignore_errors: yes
 
-  # Step 2: Inicializar o Swarm no manager (vm1) se ainda não estiver ativo
-  - name: Inicializar o Swarm no manager (vm1) se ainda não estiver ativo
+  # Step 2: Inicializar o Swarm no manager (CPPlanta1) se ainda não estiver ativo
+  - name: Inicializar o Swarm no manager (CPPlanta1) se ainda não estiver ativo
     shell: docker swarm init --advertise-addr {{ ansible_host }}
     when: "'Swarm: inactive' in docker_info.stdout"
-    delegate_to: "{{ groups['vm1'][0] }}"
+    delegate_to: "{{ groups['CPPlanta1'][0] }}"
     run_once: true
     ignore_errors: yes  
 
@@ -71,16 +71,16 @@
   - name: Obter o token de junção para os workers
     shell: docker swarm join-token worker -q
     register: worker_join_token
-    delegate_to: "{{ groups['vm1'][0] }}"
+    delegate_to: "{{ groups['CPPlanta1'][0] }}"
     run_once: true
     when: "'Swarm: active' in docker_info.stdout"
     ignore_errors: yes  
 
   # Step 4: Juntar os workers ao Swarm
   - name: Join Docker Swarm as worker
-    shell: "docker swarm join --token {{ hostvars[groups['vm1'][0]].worker_join_token.stdout }} {{ hostvars[groups['vm1'][0]].inventory_hostname }}:2377"
+    shell: "docker swarm join --token {{ hostvars[groups['CPPlanta1'][0]].worker_join_token.stdout }} {{ hostvars[groups['CPPlanta1'][0]].inventory_hostname }}:2377"
     when: >
-      inventory_hostname != groups['vm1'][0] and
+      inventory_hostname != groups['CPPlanta1'][0] and
       "'Swarm: active' in docker_info.stdout"
     ignore_errors: yes
 
@@ -89,14 +89,14 @@
     copy:
       src: ./stack.yml
       dest: /home/{{ ansible_ssh_user }}/stack.yml
-    delegate_to: "{{ groups['vm1'][0] }}"
+    delegate_to: "{{ groups['CPPlanta1'][0] }}"
     run_once: true
     ignore_errors: yes  # Ignore errors if already copied
 
   # Step 7: Executar o deploy do stack no nó manager
   - name: Executar o deploy do stack no nó manager
     shell: docker stack deploy -c /home/{{ ansible_ssh_user }}/stack.yml CP-Planta
-    delegate_to: "{{ groups['vm1'][0] }}"
+    delegate_to: "{{ groups['CPPlanta1'][0] }}"
     run_once: true
     when: "'Swarm: active' in docker_info.stdout"
     ignore_errors: yes  
@@ -105,7 +105,7 @@
   - name: Verificar o volume montado no container runner
     command: docker service inspect CP-Planta_runners --format='{{ "{{ .Spec.TaskTemplate.ContainerSpec.Mounts }}" }}'
     register: service_info
-    delegate_to: "{{ groups['vm1'][0] }}"
+    delegate_to: "{{ groups['CPPlanta1'][0] }}"
     run_once: true
 
   - name: Mostrar informações de volumes do serviço runners
@@ -115,14 +115,14 @@
   # Step 9: Forçar reinício do serviço runners, se necessário
   - name: Forçar reinício do serviço runners
     shell: docker service update --force CP-Planta_runners
-    delegate_to: "{{ groups['vm1'][0] }}"
+    delegate_to: "{{ groups['CPPlanta1'][0] }}"
     run_once: true
     ignore_errors: yes  
 
   # Step 10: Verificar o status do stack no nó manager
   - name: Verificar o status do stack no nó manager
     shell: docker stack ps CP-Planta
-    delegate_to: "{{ groups['vm1'][0] }}"
+    delegate_to: "{{ groups['CPPlanta1'][0] }}"
     run_once: true
     ignore_errors: yes  
 
@@ -175,5 +175,5 @@
       port: 3000
       state: started
       timeout: 15
-    delegate_to: "{{ groups['vm1'][0] }}"
+    delegate_to: "{{ groups['CPPlanta1'][0] }}"
     run_once: true
