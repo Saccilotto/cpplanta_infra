@@ -1,4 +1,4 @@
-[CP-Planta #1]
+[CPPlanta1]
 <your-ip1> ansible_ssh_user=<your-user> ansible_ssh_private_key_file=<path-pem>
-[CP-Planta #2]
+[CPPlanta2]
 <your-ip2> ansible_ssh_user=<your-user> ansible_ssh_private_key_file=<path-pem> 
