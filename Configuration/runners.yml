@@ -1,82 +1,134 @@
 ---
-- hosts: all  
+- hosts: all
   become: yes
   vars:
     gitlab_runner_url: "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64"
+    gitlab_runner_config_dir: "/etc/gitlab-runner"
     gitlab_runner_path: "/usr/local/bin/gitlab-runner"
-    gitlab_runner_user: "gitlab-runner"
     gitlab_runner_registration_url: "{{ lookup('env', 'CI_SERVER_URL') }}"
     gitlab_runner_registration_token: "{{ lookup('env', 'RUNNER_TOKEN') }}"
-    gitlab_runner_executor: "shell"  
-    gitlab_runner_description: "Azure Runner VM"
-    gitlab_runner_tags: "azure,runner"
-    gitlab_runner_config_dir: "/etc/gitlab-runner"
+    gitlab_runner_executor: "docker"
+    gitlab_runner_description: "Azure Runner VM on {{ ansible_host }}"
+    gitlab_runner_tags: "azure, runner on {{ ansible_host }}"
+    gitlab_runner_user: "gitlab-runner"
 
   tasks:
-  - name: Ensure dependencies are installed
-    apt:
-      name: 
-        - curl
-        - ca-certificates
-        - git
-      state: present
-      update_cache: yes
+    - name: Ensure runner network is created
+      docker_network:
+        name: runner_network
+        state: present
 
-  - name: Create GitLab Runner user
-    user:
-      name: "{{ gitlab_runner_user }}"
-      shell: /bin/bash
-      create_home: yes
-      system: yes
+    - name: Ensure gitlab-runner user exists
+      ansible.builtin.user:
+        name: "{{ gitlab_runner_user }}"
+        state: present
+        system: yes
+      become: yes
 
-  - name: Download GitLab Runner binary
-    get_url:
-      url: "{{ gitlab_runner_url }}"
-      dest: "{{ gitlab_runner_path }}"
-      mode: '0755'
-    notify: restart gitlab-runner
+    - name: Create GitLab Runner config directory
+      file:
+        path: "{{ gitlab_runner_config_dir }}"
+        state: directory
+        mode: '0755'
+        owner: gitlab-runner
+        group: gitlab-runner
+      become: yes
+      ignore_errors: yes
 
-  - name: Create GitLab Runner config directory
-    file:
-      path: "{{ gitlab_runner_config_dir }}"
-      state: directory
-      owner: "{{ gitlab_runner_user }}"
-      group: "{{ gitlab_runner_user }}"
-      mode: '0755'
+    - name: Download GitLab Runner binary
+      get_url:
+        url: "{{ gitlab_runner_url }}"
+        dest: "{{ gitlab_runner_path }}"
+        mode: '0755'
+      notify: restart gitlab-runner
 
-  - name: Register GitLab Runner
-    command: >
-      {{ gitlab_runner_path }} register
-      --non-interactive
-      --url "{{ gitlab_runner_registration_url }}"
-      --registration-token "{{ gitlab_runner_registration_token }}"
-      --executor "{{ gitlab_runner_executor }}"
-      --description "{{ gitlab_runner_description }}"
-      --tag-list "{{ gitlab_runner_tags }}"
-      --run-untagged
-      --locked=false
-    become: yes
-    become_method: sudo
-    environment:
-      HOME: "/home/{{ gitlab_runner_user }}"
-    args:
-      creates: "{{ gitlab_runner_config_dir }}/config.toml"
+    - name: Create GitLab Runner path directory
+      file:
+        path: "{{ gitlab_runner_path }}"
+        state: directory
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
+        mode: '0755'
+      become: yes
+      ignore_errors: yes
     
-  - name: Check if GitLab Runner service exists
-    stat:
-      path: /etc/systemd/system/gitlab-runner.service
-    register: runner_service
+    - name: Adicionar o usuário gitlab-runner ao grupo docker
+      user: 
+        name: "{{ gitlab_runner_user }}"
+        groups: docker
+        append: yes
+      become: yes
 
-  - name: Install GitLab Runner service
-    command: "{{ gitlab_runner_path }} install --user {{ gitlab_runner_user }}"
-    when: not runner_service.stat.exists
-    notify: restart gitlab-runner
+    - name: Register GitLab Runner
+      command: >
+        {{ gitlab_runner_path }} register
+        --non-interactive
+        --url "{{ gitlab_runner_registration_url }}"
+        --registration-token "{{ gitlab_runner_registration_token }}"
+        --executor "docker"
+        --docker-image "alpine:latest"
+        --description "{{ gitlab_runner_description }}"
+        --tag-list "{{ gitlab_runner_tags }}"
+        --run-untagged
+        --locked=false
+      become: yes
+      environment:
+        HOME: "/home/{{ gitlab_runner_user }}"
+      args:
+        creates: "{{ gitlab_runner_config_dir }}/config.toml"
+        
+    - name: Check if GitLab Runner service exists
+      stat:
+        path: /etc/systemd/system/gitlab-runner.service
+      register: runner_service
 
-  - name: Start GitLab Runner service
-    systemd:
-      name: gitlab-runner
-      state: started
-      enabled: true
+    - name: Install GitLab Runner service
+      command: "{{ gitlab_runner_path }} install --user {{ gitlab_runner_user }}"
+      when: not runner_service.stat.exists
+      notify: restart gitlab-runner
+
+    - name: Ensure correct permissions for GitLab Runner config.toml
+      file:
+        path: "{{ gitlab_runner_config_dir }}/config.toml"
+        state: file
+        mode: '0644'  
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
+      become: yes
+
+    - name: Update GitLab Runner config.toml for docker executor
+      lineinfile:
+        path: "{{ gitlab_runner_config_dir }}/config.toml"
+        regexp: '^  shell = '
+        line: '  shell = "/bin/docker"'
+        state: present
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
+
+    - name: Set disable_profile_loading to true in config.toml
+      lineinfile:
+        path: "{{ gitlab_runner_config_dir }}/config.toml"
+        regexp: '^  disable_profile_loading = '
+        line: '  disable_profile_loading = true'
+        state: present
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
+
+    - name: Check if GitLab Runner service exists
+      stat:
+        path: /etc/systemd/system/gitlab-runner.service
+      register: runner_service
+
+    - name: Install GitLab Runner service
+      command: "{{ gitlab_runner_path }} install --user {{ gitlab_runner_user }}"
+      when: not runner_service.stat.exists
+      notify: restart gitlab-runner
+
+    - name: Start GitLab Runner service
+      systemd:
+        name: gitlab-runner
+        state: started
+        enabled: true
 
   handlers:
     - name: restart gitlab-runner

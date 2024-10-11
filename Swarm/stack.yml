@@ -85,11 +85,18 @@ services:
     networks:
       - runner_network
     deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: "4G"
+        reservations:
+          cpus: "1"
+          memory: "2G"
       mode: replicated
-      replicas: 2
+      replicas: 4
       restart_policy:
         condition: on-failure
-        
+
 networks:
   backend_network:
     driver: overlay
@@ -101,3 +108,4 @@ networks:
 volumes:
   db_data:
     driver: local
+  
