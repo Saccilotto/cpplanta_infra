@@ -3,12 +3,10 @@ stages:
 
 variables:
   DOCKER_REGISTRY: docker.io
-  SSH_USER1: $SSH_USER1  # Nome do usuário SSH
-  SSH_USER2: $SSH_USER2  # Nome do usuário SSH
+  SSH_USER1: $SSH_USER  # Nome do usuário SSH
   STATIC_IP_1: $STATIC_IP_1  # Primeiro IP estático
   STATIC_IP_2: $STATIC_IP_2  # Segundo IP estático
-  PEM_FILE_PATH1: ssh_keys/vm1.pem  # Caminho do arquivo PEM para a primeira VM
-  PEM_FILE_PATH2: ssh_keys/vm2.pem  # Caminho do arquivo PEM para a segunda VM 
+  PEM_FILE_PATH: ./CP-Planta.pem  # Caminho do arquivo PEM para a primeira VM
 
 default:
   image: alpine:latest  # Usando Alpine como base
@@ -16,9 +14,8 @@ default:
     - docker:dind  # Docker in Docker
 
 before_script:
-  - echo "$PEM_FILE_CONTENT1" > ssh_keys/vm1.pem  # Recupera o conteúdo do arquivo PEM 1 de uma variável de ambiente
-  - echo "$PEM_FILE_CONTENT2" > ssh_keys/vm2.pem  # Recupera o conteúdo do arquivo PEM 2 de uma variável de ambiente
-  - chmod 600 ssh_keys/vm1.pem ssh_keys/vm2.pem  # Ajusta as permissões dos arquivos PEM
+  - echo "$PEM_FILE_CONTENT" > ./CP-Planta.pem  # Recupera o conteúdo do arquivo PEM 2 de uma variável de ambiente
+  - chmod 600 ./CP-Planta.pem  # Ajusta as permissões dos arquivos PEM
   - apk add --no-cache docker ansible openssh  # Instalar Docker, Ansible e SSH
   - apk add --no-cache python3 py3-pip  # Se o script utilizar Python
   - apk add --no-cache docker  # Instala o Docker no Alpine
@@ -30,10 +27,10 @@ deploy:
     - cp static_ip.ini.example static_ip.ini  # Faz uma cópia do arquivo de exemplo
     - sed -i "s|<your-ip1>|$STATIC_IP_1|" static_ip.ini  # Substitui o primeiro IP estático
     - sed -i "s|<your-ip2>|$STATIC_IP_2|" static_ip.ini  # Substitui o segundo IP estático
-    - sed -i "s|<your-user1>|$SSH_USER1|" static_ip.ini  # Substitui o usuário SSH
-    - sed -i "s|<your-user2>|$SSH_USER1|" static_ip.ini  # Substitui o usuário SSH
-    - sed -i "s|<path-pem1>|$PEM_FILE_PATH1|" static_ip.ini  # Substitui o caminho do arquivo PEM
-    - sed -i "s|<path-pem2>|$PEM_FILE_PATH2|" static_ip.ini  # Substitui o caminho do arquivo PEM
+    - sed -i "s|<your-user>|$SSH_USER|" static_ip.ini  # Substitui o usuário SSH
+    - sed -i "s|<your-user>|$SSH_USER|" static_ip.ini  # Substitui o usuário SSH
+    - sed -i "s|<path-pem>|$PEM_FILE_PATH|" static_ip.ini  # Substitui o caminho do arquivo PEM
+    - sed -i "s|<path-pem>|$PEM_FILE_PATH|" static_ip.ini  # Substitui o caminho do arquivo PEM
     # Certifique-se de que o script de deploy tenha permissão de execução
     - chmod +x ./deploy.sh
     # Executa o script de deploy
