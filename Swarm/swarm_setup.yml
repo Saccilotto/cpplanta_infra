@@ -168,3 +168,12 @@
       url: "http://{{ item }}:80"
       status_code: 200
     loop: "{{ groups['all'] }}"
+
+  - name: Check if backend is accessible via port 3000
+    wait_for:
+      host: "{{ ansible_host }}"
+      port: 3000
+      state: started
+      timeout: 15
+    delegate_to: "{{ groups['vm1'][0] }}"
+    run_once: true

@@ -1,10 +1,47 @@
 version: "3.8"
 services:
+  postgres_primary:
+    image: norohim/postgres-optimal:latest
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - primary_data:/var/lib/postgresql/data
+    networks:
+      - backend_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "5432:5432"  
+
+  postgres_replica:
+    image: norohim/postgres-optimal:latest
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - REPLICATE_FROM=postgres_primary  # Custom environment variable
+    volumes:
+      - replica_data:/var/lib/postgresql/data
+    networks:
+      - backend_network
+    depends_on:
+      - postgres_primary
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "5433:5432"  
+
   backend:
     image: norohim/cp-planta-backend:latest
     environment:
       - NODE_ENV=production
-      - DB_HOST=database
+      - DB_HOST=postgres_primary
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
@@ -17,32 +54,6 @@ services:
         condition: on-failure
     ports:
       - "3000:3000"
-
-  database:
-    image: norohim/cp-planta-database:latest
-    environment:
-      - NODE_ENV=production
-      - DB_HOST=database
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    networks:
-      - backend_network
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints:
-          - node.hostname == vm1
-    ports:
-      - "5432:5432"
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -98,6 +109,10 @@ services:
         condition: on-failure
 
 networks:
+  primary_data:
+    driver: local
+  replica_data:
+    driver: local
   backend_network:
     driver: overlay
   frontend_network:
