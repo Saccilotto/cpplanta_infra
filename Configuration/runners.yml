@@ -8,8 +8,8 @@
     gitlab_runner_registration_url: "{{ lookup('env', 'CI_SERVER_URL') }}"
     gitlab_runner_registration_token: "{{ lookup('env', 'RUNNER_TOKEN') }}"
     gitlab_runner_executor: "docker"
-    gitlab_runner_description: "Azure Runner VM on {{ ansible_host }}"
-    gitlab_runner_tags: "azure, runner on {{ ansible_host }}"
+    gitlab_runner_description: "AWS Runner VM on {{ ansible_host }}"
+    gitlab_runner_tags: "aws, runner on {{ ansible_host }}"
     gitlab_runner_user: "gitlab-runner"
 
   tasks:

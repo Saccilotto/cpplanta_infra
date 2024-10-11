@@ -61,7 +61,7 @@ services:
       - PGADMIN_DEFAULT_EMAIL=fulano@gmail.com
       - PGADMIN_DEFAULT_PASSWORD=abc123
     depends_on:
-      - database
+      - postgres_primary
     networks:
       - backend_network
     deploy:
@@ -109,10 +109,7 @@ services:
         condition: on-failure
 
 networks:
-  primary_data:
-    driver: local
-  replica_data:
-    driver: local
+
   backend_network:
     driver: overlay
   frontend_network:
@@ -121,6 +118,8 @@ networks:
     driver: overlay
 
 volumes:
-  db_data:
+  primary_data:
+    driver: local
+  replica_data:
     driver: local
   

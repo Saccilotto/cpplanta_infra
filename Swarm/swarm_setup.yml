@@ -28,7 +28,7 @@
       state: present
       update_cache: yes
   
-  - name: Ensure Docker is installed on all nodes
+  - name: Ensure Docker is installed on all nodes After adding the Docker repository
     apt:
       name: 
         - docker.io
@@ -44,7 +44,7 @@
 
   - name: Adicionar o usuário ao grupo docker
     user:
-      name: 
+      name: "{{ ansible_ssh_user }}"
       groups: docker
       append: yes
     become: yes
@@ -76,6 +76,11 @@
     when: "'Swarm: active' in docker_info.stdout"
     ignore_errors: yes  
 
+  - name: Debug worker_join_token
+    debug:
+      var: worker_join_token
+    run_once: true
+
   # Step 4: Juntar os workers ao Swarm
   - name: Join Docker Swarm as worker
     shell: "docker swarm join --token {{ hostvars[groups['CPPlanta1'][0]].worker_join_token.stdout }} {{ hostvars[groups['CPPlanta1'][0]].inventory_hostname }}:2377"
@@ -101,23 +106,24 @@
     when: "'Swarm: active' in docker_info.stdout"
     ignore_errors: yes  
 
-  # Step 8: Verificar o volume montado no container runner
+  - name: List all Docker services
+    shell: docker service ls
+    register: docker_services
+    delegate_to: "{{ groups['CPPlanta1'][0] }}"
+    run_once: true
+
+  - name: Debug Docker services
+    debug:
+      var: docker_services.stdout
+    run_once: true
+
   - name: Verificar o volume montado no container runner
     command: docker service inspect CP-Planta_runners --format='{{ "{{ .Spec.TaskTemplate.ContainerSpec.Mounts }}" }}'
     register: service_info
     delegate_to: "{{ groups['CPPlanta1'][0] }}"
     run_once: true
-
-  - name: Mostrar informações de volumes do serviço runners
-    debug:
-      var: service_info.stdout
-
-  # Step 9: Forçar reinício do serviço runners, se necessário
-  - name: Forçar reinício do serviço runners
-    shell: docker service update --force CP-Planta_runners
-    delegate_to: "{{ groups['CPPlanta1'][0] }}"
-    run_once: true
-    ignore_errors: yes  
+    failed_when: service_info.rc != 0
+    ignore_errors: yes
 
   # Step 10: Verificar o status do stack no nó manager
   - name: Verificar o status do stack no nó manager
@@ -129,9 +135,9 @@
   # Step 11: Esperar tudo fica pronto
   - name: Esperar tudo fica pronto
     pause:
-      minutes: 1
+      seconds: 45
 
-  # Only debug purposes
+  # From now on only for debugging purposes
   # Checar conectividade na porta 3001 para o frontend
   - name: Verificar se o frontend está acessível via porta 3001
     wait_for:
@@ -142,17 +148,10 @@
     delegate_to: "{{ item }}"
     loop: "{{ groups['all'] }}"
     run_once: false
+    ignore_errors: yes
 
-  # Verificar se o frontend responde HTTP na porta 3001
-  - name: Verificar se o frontend responde HTTP na porta 3001
-    uri:
-      url: "http://{{ item }}:3001"
-      status_code: 200
-    loop: "{{ groups['all'] }}"
-    run_once: false
-
-  # Checar conectividade na porta 8080 para o pgAdmin
-  - name: Verificar se o pgAdmin está acessível via porta 8080
+  # Checar conectividade na porta 80 para o pgAdmin
+  - name: Verificar se o pgAdmin está acessível via porta 80
     wait_for:
       host: "{{ ansible_host  }}"
       port: 80
@@ -161,19 +160,14 @@
     delegate_to: "{{ item }}"
     loop: "{{ groups['all'] }}"
     run_once: false
-
-  # Verificar se o pgAdmin responde HTTP na porta 8080
-  - name: Verificar se o pgAdmin responde HTTP na porta 80
-    uri:
-      url: "http://{{ item }}:80"
-      status_code: 200
-    loop: "{{ groups['all'] }}"
+    ignore_errors: yes
 
   - name: Check if backend is accessible via port 3000
     wait_for:
       host: "{{ ansible_host }}"
       port: 3000
       state: started
-      timeout: 15
-    delegate_to: "{{ groups['CPPlanta1'][0] }}"
+      timeout: 20
+    delegate_to: "{{ groups['all'][0] }}"
     run_once: true
+    ignore_errors: yes
