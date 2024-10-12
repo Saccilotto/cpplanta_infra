@@ -3,6 +3,7 @@ services:
   postgres_primary:
     image: norohim/postgres-optimal:latest
     environment:
+      - ROLE=primary
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
@@ -23,7 +24,8 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
-      - REPLICATE_FROM=postgres_primary  # Custom environment variable
+      - ROLE=replica  
+      - REPLICATE_FROM=postgres_primary  
     volumes:
       - replica_data:/var/lib/postgresql/data
     networks:
