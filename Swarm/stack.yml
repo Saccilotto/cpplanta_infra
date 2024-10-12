@@ -21,9 +21,6 @@ services:
   postgres_replica:
     image: norohim/postgres-optimal:latest
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
       - ROLE=replica  
       - REPLICATE_FROM=postgres_primary  
     volumes:
@@ -43,7 +40,7 @@ services:
     image: norohim/cp-planta-backend:latest
     environment:
       - NODE_ENV=production
-      - DB_HOST=postgres_primary
+      - DB_HOST=database
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
@@ -123,4 +120,3 @@ volumes:
     driver: local
   replica_data:
     driver: local
-  
