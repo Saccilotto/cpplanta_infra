@@ -98,18 +98,17 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2"
-          memory: "4G"
-        reservations:
           cpus: "1"
           memory: "2G"
+        reservations:
+          cpus: "0.5"
+          memory: "1"
       mode: replicated
       replicas: 4
       restart_policy:
         condition: on-failure
 
 networks:
-
   backend_network:
     driver: overlay
   frontend_network:

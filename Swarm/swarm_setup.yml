@@ -1,173 +1,81 @@
 ---
-- name: Configurar o Docker Swarm Cluster
+- name: Configure the Docker Swarm Cluster
   hosts: all
   become: yes
+  vars:
+    manager_node: "{{ groups['CPPlanta1'][0] }}"
   tasks:
-  - name: Ensure dependencies are installed
-    apt:
-      name: 
-        - curl
-        - ca-certificates
-        - git
-        - acl
+    - name: Install dependencies
+      apt:
+        name:
+          - curl
+          - ca-certificates
+          - git
+          - acl
+        state: present
+        update_cache: yes
 
-  - name: Verificar se o Docker está instalado
-    command: docker --version
-    ignore_errors: yes
-    register: docker_installed
+    - name: Install Docker using official script
+      shell: curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+      args:
+        creates: /usr/bin/docker
 
-  - name: Adicionar chave GPG do Docker
-    apt_key:
-      url: https://download.docker.com/linux/ubuntu/gpg
-      state: present
-    when: docker_installed is failed
+    - name: Add users to docker group
+      user:
+        name: "{{ item }}"
+        groups: docker
+        append: yes
+      loop:
+        - "{{ ansible_ssh_user }}"
+        - gitlab-runner
 
-  - name: Adicionar repositório oficial do Docker para Ubuntu Server
-    apt_repository:
-      repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-      state: present
-      update_cache: yes
-  
-  - name: Ensure Docker is installed on all nodes After adding the Docker repository
-    apt:
-      name: 
-        - docker.io
-        - containerd
-      state: present
-      update_cache: yes
+    - name: Initialize Swarm on manager
+      docker_swarm:
+        state: present
+        advertise_addr: "{{ ansible_host }}"
+      when: inventory_hostname == manager_node
 
-  - name: Verificar se o Docker está instalado
-    command: docker --version
-    register: docker_installed
-    failed_when: docker_installed.rc != 0
-    ignore_errors: yes  
+    - name: Get Swarm join tokens
+      docker_swarm_info:
+      register: swarm_info
+      delegate_to: "{{ manager_node }}"
+      run_once: true
 
-  - name: Adicionar o usuário ao grupo docker
-    user:
-      name: "{{ ansible_ssh_user }}"
-      groups: docker
-      append: yes
-    become: yes
-    ignore_errors: yes
+    - name: Join workers to Swarm
+      docker_swarm:
+        state: present
+        join_token: "{{ swarm_info.swarm_facts.JoinTokens.Worker }}"
+        remote_addrs:
+          - "{{ hostvars[manager_node].ansible_host }}"
+      when: inventory_hostname != manager_node
 
-  # Step 1: Verificar se o Docker Swarm está ativo no manager (CPPlanta1)
-  - name: Verificar se o Docker Swarm está ativo no manager
-    shell: docker info
-    register: docker_info
-    delegate_to: "{{ groups['CPPlanta1'][0] }}"
-    run_once: true
-    failed_when: false  # Do not fail even if Docker Swarm is not active
-    ignore_errors: yes
+    - name: Copy stack.yml to manager
+      copy:
+        src: ./stack.yml
+        dest: /home/{{ ansible_ssh_user }}/stack.yml
+      delegate_to: "{{ manager_node }}"
+      run_once: true
 
-  # Step 2: Inicializar o Swarm no manager (CPPlanta1) se ainda não estiver ativo
-  - name: Inicializar o Swarm no manager (CPPlanta1) se ainda não estiver ativo
-    shell: docker swarm init --advertise-addr {{ ansible_host }}
-    when: "'Swarm: inactive' in docker_info.stdout"
-    delegate_to: "{{ groups['CPPlanta1'][0] }}"
-    run_once: true
-    ignore_errors: yes  
+    - name: Deploy the stack on manager
+      shell: docker stack deploy -c /home/{{ ansible_ssh_user }}/stack.yml CP-Planta
+      args:
+        chdir: /home/{{ ansible_ssh_user }}
+      delegate_to: "{{ manager_node }}"
+      run_once: true
 
-  # Step 3: Obter o token de junção para os workers
-  - name: Obter o token de junção para os workers
-    shell: docker swarm join-token worker -q
-    register: worker_join_token
-    delegate_to: "{{ groups['CPPlanta1'][0] }}"
-    run_once: true
-    when: "'Swarm: active' in docker_info.stdout"
-    ignore_errors: yes  
+    - name: Wait for services to stabilize
+      pause:
+        seconds: 30
+      delegate_to: "{{ manager_node }}"
+      run_once: true
 
-  - name: Debug worker_join_token
-    debug:
-      var: worker_join_token
-    run_once: true
+    - name: Verify services are running
+      shell: docker service ls
+      register: service_list
+      delegate_to: "{{ manager_node }}"
+      run_once: true
 
-  # Step 4: Juntar os workers ao Swarm
-  - name: Join Docker Swarm as worker
-    shell: "docker swarm join --token {{ hostvars[groups['CPPlanta1'][0]].worker_join_token.stdout }} {{ hostvars[groups['CPPlanta1'][0]].inventory_hostname }}:2377"
-    when: >
-      inventory_hostname != groups['CPPlanta1'][0] and
-      "'Swarm: active' in docker_info.stdout"
-    ignore_errors: yes
-
-  # Step 6: Copiar o arquivo stack.yml para o nó manager
-  - name: Copiar o arquivo stack.yml para o nó manager
-    copy:
-      src: ./stack.yml
-      dest: /home/{{ ansible_ssh_user }}/stack.yml
-    delegate_to: "{{ groups['CPPlanta1'][0] }}"
-    run_once: true
-    ignore_errors: yes  # Ignore errors if already copied
-
-  # Step 7: Executar o deploy do stack no nó manager
-  - name: Executar o deploy do stack no nó manager
-    shell: docker stack deploy -c /home/{{ ansible_ssh_user }}/stack.yml CP-Planta
-    delegate_to: "{{ groups['CPPlanta1'][0] }}"
-    run_once: true
-    when: "'Swarm: active' in docker_info.stdout"
-    ignore_errors: yes  
-
-  - name: List all Docker services
-    shell: docker service ls
-    register: docker_services
-    delegate_to: "{{ groups['CPPlanta1'][0] }}"
-    run_once: true
-
-  - name: Debug Docker services
-    debug:
-      var: docker_services.stdout
-    run_once: true
-
-  - name: Verificar o volume montado no container runner
-    command: docker service inspect CP-Planta_runners --format='{{ "{{ .Spec.TaskTemplate.ContainerSpec.Mounts }}" }}'
-    register: service_info
-    delegate_to: "{{ groups['CPPlanta1'][0] }}"
-    run_once: true
-    failed_when: service_info.rc != 0
-    ignore_errors: yes
-
-  # Step 10: Verificar o status do stack no nó manager
-  - name: Verificar o status do stack no nó manager
-    shell: docker stack ps CP-Planta
-    delegate_to: "{{ groups['CPPlanta1'][0] }}"
-    run_once: true
-    ignore_errors: yes  
-
-  # Step 11: Esperar tudo fica pronto
-  - name: Esperar tudo fica pronto
-    pause:
-      seconds: 45
-
-  # From now on only for debugging purposes
-  # Checar conectividade na porta 3001 para o frontend
-  - name: Verificar se o frontend está acessível via porta 3001
-    wait_for:
-      host: "{{ ansible_host  }}"
-      port: 3001
-      state: started
-      timeout: 30
-    delegate_to: "{{ item }}"
-    loop: "{{ groups['all'] }}"
-    run_once: false
-    ignore_errors: yes
-
-  # Checar conectividade na porta 80 para o pgAdmin
-  - name: Verificar se o pgAdmin está acessível via porta 80
-    wait_for:
-      host: "{{ ansible_host  }}"
-      port: 80
-      state: started
-      timeout: 30
-    delegate_to: "{{ item }}"
-    loop: "{{ groups['all'] }}"
-    run_once: false
-    ignore_errors: yes
-
-  - name: Check if backend is accessible via port 3000
-    wait_for:
-      host: "{{ ansible_host }}"
-      port: 3000
-      state: started
-      timeout: 20
-    delegate_to: "{{ groups['all'][0] }}"
-    run_once: true
-    ignore_errors: yes
+    - name: Show services
+      debug:
+        var: service_list.stdout_lines
+      run_once: true

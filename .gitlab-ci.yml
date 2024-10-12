@@ -15,7 +15,7 @@ default:
 
 before_script:
   - echo "$PEM_FILE_CONTENT" > ./CP-Planta.pem  # Recupera o conteúdo do arquivo PEM 2 de uma variável de ambiente
-  - chmod 600 ./CP-Planta.pem  # Ajusta as permissões dos arquivos PEM
+  - chmod 400 ./CP-Planta.pem  # Ajusta as permissões dos arquivos PEM
   - apk add --no-cache docker ansible openssh  # Instalar Docker, Ansible e SSH
   - apk add --no-cache python3 py3-pip  # Se o script utilizar Python
   - apk add --no-cache docker  # Instala o Docker no Alpine
