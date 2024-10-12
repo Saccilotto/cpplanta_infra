@@ -14,26 +14,6 @@
     gitlab_runner_user: "gitlab-runner"
 
   tasks:
-    - name: Ensure Docker is installed
-      apt:
-        name: docker.io
-        state: present
-        update_cache: yes
-      become: yes
-
-    - name: Ensure gitlab-runner user exists
-      user:
-        name: "{{ gitlab_runner_user }}"
-        state: present
-        system: yes
-
-    - name: Add gitlab-runner user to docker group
-      user:
-        name: "{{ gitlab_runner_user }}"
-        groups: docker
-        append: yes
-      become: yes
-
     - name: Download GitLab Runner binary
       get_url:
         url: "{{ gitlab_runner_url }}"
@@ -47,6 +27,14 @@
         mode: '0755'
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
+
+    - name: Ensure GitLab Runner temporary directory exists
+      file:
+        path: /home/gitlab-runner/.ansible/tmp
+        state: directory
+        owner: gitlab-runner
+        group: gitlab-runner
+        mode: '0755'
 
     - name: Register GitLab Runner
       command: >
@@ -73,10 +61,7 @@
         path: "{{ gitlab_runner_config_dir }}/config.toml"
         section: "runners.docker"
         option: "allowed_images"
-        value: ["docker:*"]
-      owner: "{{ gitlab_runner_user }}"
-      group: "{{ gitlab_runner_user }}"
-      notify: restart gitlab-runner
+        value: '["docker:*"]' 
 
     - name: Ensure correct permissions for GitLab Runner config.toml
       file:

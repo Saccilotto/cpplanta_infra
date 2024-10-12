@@ -101,8 +101,8 @@ services:
           cpus: "1"
           memory: "2G"
         reservations:
-          cpus: "0.5"
-          memory: "1"
+          cpus: "0.50"
+          memory: "1G"
       mode: replicated
       replicas: 4
       restart_policy:
