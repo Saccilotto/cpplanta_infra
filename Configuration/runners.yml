@@ -12,12 +12,21 @@
     gitlab_runner_description: "AWS Runner VM on {{ ansible_host }}"
     gitlab_runner_tags: "aws,docker,runner-on-{{ ansible_host }}"
     gitlab_runner_user: "gitlab-runner"
+    manager_node: "{{ groups['CPPlanta1'][0] }}"
 
   tasks:
     - name: Download GitLab Runner binary
       get_url:
         url: "{{ gitlab_runner_url }}"
         dest: "{{ gitlab_runner_path }}"
+        mode: '0755'
+
+    - name: Ensure GitLab Runner temporary directory exists
+      file:
+        path: /home/gitlab-runner/.ansible/tmp
+        state: directory
+        owner: gitlab-runner
+        group: gitlab-runner
         mode: '0755'
 
     - name: Create GitLab Runner config directory
@@ -28,18 +37,18 @@
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
 
-    - name: Ensure GitLab Runner temporary directory exists
+    - name: Set ownership and permissions on /etc/gitlab-runner
       file:
-        path: /home/gitlab-runner/.ansible/tmp
-        state: directory
-        owner: gitlab-runner
-        group: gitlab-runner
+        path: "{{ gitlab_runner_config_dir }}"
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
         mode: '0755'
 
-    - name: Register GitLab Runner
+    - name: Register GitLab Runners
       command: >
         {{ gitlab_runner_path }} register
         --non-interactive
+        --config "{{ gitlab_runner_config_dir }}/config.toml"
         --url "{{ gitlab_runner_registration_url }}"
         --registration-token "{{ gitlab_runner_registration_token }}"
         --executor "{{ gitlab_runner_executor }}"
@@ -49,28 +58,20 @@
         --run-untagged
         --locked=false
         --docker-privileged
+        --docker-volumes "/var/run/docker.sock:/var/run/docker.sock"
+        --docker-volumes "/srv/gitlab-runner/config:/etc/gitlab-runner"
       environment:
-        HOME: "/home/{{ gitlab_runner_user }}"
+        HOME: "/root"
       args:
         creates: "{{ gitlab_runner_config_dir }}/config.toml"
-      become_user: "{{ gitlab_runner_user }}"
       notify: restart gitlab-runner
 
-    - name: Modify config.toml to add custom Docker options
-      ini_file:
-        path: "{{ gitlab_runner_config_dir }}/config.toml"
-        section: "runners.docker"
-        option: "allowed_images"
-        value: '["docker:*"]' 
-
-    - name: Ensure correct permissions for GitLab Runner config.toml
+    - name: Ensure correct permissions for GitLab Runner's config.toml
       file:
         path: "{{ gitlab_runner_config_dir }}/config.toml"
-        state: file
-        mode: '0644'
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
-      become: yes
+        mode: '0644'
 
     - name: Install GitLab Runner service
       command: "{{ gitlab_runner_path }} install --user {{ gitlab_runner_user }}"
