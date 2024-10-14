@@ -103,7 +103,7 @@ services:
           cpus: "0.50"
           memory: "1G"
       mode: replicated
-      replicas: 4
+      replicas: 2
       restart_policy:
         condition: on-failure
 

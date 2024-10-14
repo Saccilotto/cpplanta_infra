@@ -9,10 +9,11 @@
     gitlab_runner_registration_token: "{{ lookup('env', 'RUNNER_TOKEN') }}"
     gitlab_runner_executor: "docker"
     gitlab_runner_docker_image: "docker:latest"
-    gitlab_runner_description: "AWS Runner VM on {{ ansible_host }}"
-    gitlab_runner_tags: "aws,docker,runner-on-{{ ansible_host }}"
+    gitlab_runner_description: "AWS Runner VM on {{ inventory_hostname }}"
+    gitlab_runner_tags: "aws, docker, runner-on-{{ inventory_hostname }}"
     gitlab_runner_user: "gitlab-runner"
     manager_node: "{{ groups['CPPlanta1'][0] }}"
+    gitlab_runner_config_file: "{{ gitlab_runner_config_dir }}/config_{{ inventory_hostname }}.toml"
 
   tasks:
     - name: Download GitLab Runner binary
@@ -48,7 +49,7 @@
       command: >
         {{ gitlab_runner_path }} register
         --non-interactive
-        --config "{{ gitlab_runner_config_dir }}/config.toml"
+        --config "{{ gitlab_runner_config_file }}"
         --url "{{ gitlab_runner_registration_url }}"
         --registration-token "{{ gitlab_runner_registration_token }}"
         --executor "{{ gitlab_runner_executor }}"
@@ -63,12 +64,12 @@
       environment:
         HOME: "/root"
       args:
-        creates: "{{ gitlab_runner_config_dir }}/config.toml"
+        creates: "{{ gitlab_runner_config_file }}"
       notify: restart gitlab-runner
 
     - name: Ensure correct permissions for GitLab Runner's config.toml
       file:
-        path: "{{ gitlab_runner_config_dir }}/config.toml"
+        path: "{{ gitlab_runner_config_file }}"
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
         mode: '0644'
