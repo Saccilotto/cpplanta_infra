@@ -86,6 +86,13 @@
       when: inventory_hostname != manager_node  
       ignore_errors: yes
 
+    - name: Copy stack.yml to manager
+      copy:
+        src: ./stack.yml
+        dest: /home/{{ ansible_ssh_user }}/stack.yml
+      delegate_to: "{{ manager_node }}"
+      run_once: true
+
     - name: Deploy the stack on manager
       shell: docker stack deploy -c /home/{{ ansible_ssh_user }}/stack.yml CP-Planta
       args:
