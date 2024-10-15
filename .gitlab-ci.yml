@@ -26,13 +26,11 @@ deploy:
   stage: deploy
   script:
     # Modifica o arquivo static_ip.ini.example de acordo com as variáveis de ambiente
-    - echo PEM_FILE_PATH
-    - echo PEM_FILE_CONTENT
     - cp static_ip.ini.example static_ip.ini  # Faz uma cópia do arquivo de exemplo
     - sed -i "s|<your-ip1>|$STATIC_IP_1|" static_ip.ini  # Substitui o primeiro IP estático
     - sed -i "s|<your-ip2>|$STATIC_IP_2|" static_ip.ini  # Substitui o segundo IP estático
     - sed -i "s|<your-user>|$SSH_USER|" static_ip.ini  # Substitui o usuário SSH
-    - sed -i "s|<path-pem>|$PEM_FILE_PATH|" static_ip.ini  # Substitui o caminho do arquivo PEM
+    - sed -i "s|<path-pem>|../CPPlanta.pem|" static_ip.ini  # Substitui o caminho do arquivo PEM
     # Certifique-se de que o script de deploy tenha permissão de execução
     - cat static_ip.ini
     - chmod +x ./Configuration/run_config.sh
