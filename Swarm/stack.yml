@@ -40,12 +40,12 @@ services:
     image: norohim/cp-planta-backend:latest
     environment:
       - NODE_ENV=production
-      - DB_HOST=database
+      - DB_HOST=postgres_primary
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=postgres
-      - DATABASE_URL=postgresql://postgres:postgres@database:5432/postgres
+      - DATABASE_URL=postgresql://postgres:postgres@postgres_primary:5432/postgres
     networks:
       - backend_network
     deploy:
