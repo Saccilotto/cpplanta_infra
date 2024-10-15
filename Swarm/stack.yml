@@ -45,6 +45,7 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=postgres
+      - DATABASE_URL=postgresql://postgres:postgres@database:5432/postgres
     networks:
       - backend_network
     deploy:
