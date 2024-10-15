@@ -1,4 +1,3 @@
----
 - name: Configure the Docker Swarm Cluster
   hosts: all
   become: yes
@@ -32,7 +31,7 @@
         state: present
         update_cache: yes
       become: yes
-      
+
     - name: Install Docker APT repository key
       apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
@@ -74,16 +73,16 @@
     - name: Get Swarm join tokens from manager
       docker_swarm_info:
       register: swarm_info
-      delegate_to: "{{ manager_node }}"  
+      delegate_to: "{{ manager_node }}"
       run_once: true
 
     - name: Join workers to Swarm
       docker_swarm:
         state: present
-        join_token: "{{ swarm_info.swarm_facts.JoinTokens.Worker }}"  
+        join_token: "{{ swarm_info.swarm_facts.JoinTokens.Worker }}"
         remote_addrs:
-          - "{{ inventory_hostname }}" 
-      when: inventory_hostname != manager_node  
+          - "{{ inventory_hostname }}"
+      when: inventory_hostname != manager_node
       ignore_errors: yes
 
     - name: Copy stack.yml to manager
@@ -93,8 +92,8 @@
       delegate_to: "{{ manager_node }}"
       run_once: true
 
-    - name: Deploy the stack on manager
-      shell: docker stack deploy -c /home/{{ ansible_ssh_user }}/stack.yml CP-Planta
+    - name: Deploy the stack on manager (with force update)
+      shell: docker stack deploy --with-registry-auth --resolve-image always -c /home/{{ ansible_ssh_user }}/stack.yml CP-Planta
       args:
         chdir: /home/{{ ansible_ssh_user }}
       delegate_to: "{{ manager_node }}"
@@ -115,4 +114,13 @@
     - name: Show services
       debug:
         var: service_list.stdout_lines
+      run_once: true
+
+    - name: Force update any failed services
+      shell: |
+        failed_services=$(docker service ls --filter "desired-state=running" --filter "replicas=0" -q)
+        for service in $failed_services; do
+          docker service update --force $service
+        done
+      delegate_to: "{{ manager_node }}"
       run_once: true

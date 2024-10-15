@@ -15,9 +15,9 @@ sleep 5
 
 cd ../Configuration/
 
-# Navigate to Ansible directory and run playbook
-#echo "Running Ansible runners playbook..."
-#./run_config.sh
+#Navigate to Ansible directory and run playbook
+echo "Running Ansible runners playbook..."
+./run_config.sh
 
 cd ..
 echo "Deployment complete."
