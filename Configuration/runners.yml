@@ -1,4 +1,3 @@
----
 - hosts: all
   become: yes
   vars:
@@ -13,9 +12,21 @@
     gitlab_runner_tags: "aws, docker, runner-on-{{ inventory_hostname }}"
     gitlab_runner_user: "gitlab-runner"
     manager_node: "{{ groups['CPPlanta1'][0] }}"
-    gitlab_runner_config_file: "{{ gitlab_runner_config_dir }}/config_{{ inventory_hostname }}.toml"
+    gitlab_runner_config_file: "{{ gitlab_runner_config_dir }}/config.toml"
 
   tasks:
+    - name: Ensure gitlab-runner group exists
+      group:
+        name: "{{ gitlab_runner_user }}"
+        state: present
+
+    - name: Ensure gitlab-runner user exists
+      user:
+        name: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user }}"
+        create_home: true
+        system: true
+
     - name: Download GitLab Runner binary
       get_url:
         url: "{{ gitlab_runner_url }}"
@@ -78,7 +89,13 @@
       command: "{{ gitlab_runner_path }} install --user {{ gitlab_runner_user }}"
       args:
         creates: "/etc/systemd/system/gitlab-runner.service"
-      notify: restart gitlab-runner
+      notify:
+        - restart gitlab-runner
+        - reload systemd
+
+    - name: Reload systemd to apply new services
+      systemd:
+        daemon_reload: yes
 
     - name: Start GitLab Runner service
       systemd:
@@ -91,3 +108,7 @@
       systemd:
         name: gitlab-runner
         state: restarted
+
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
