@@ -2,17 +2,18 @@
   become: yes
   vars:
     gitlab_runner_url: "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64"
-    gitlab_runner_config_dir: "/etc/gitlab-runner"
     gitlab_runner_path: "/usr/local/bin/gitlab-runner"
     gitlab_runner_registration_url: "{{ lookup('env', 'CI_SERVER_URL') }}"
     gitlab_runner_registration_token: "{{ lookup('env', 'RUNNER_TOKEN') }}"
     gitlab_runner_executor: "docker"
     gitlab_runner_docker_image: "docker:latest"
-    gitlab_runner_description: "AWS Runner VM on {{ inventory_hostname }}"
-    gitlab_runner_tags: "aws, docker, runner-on-{{ inventory_hostname }}"
     gitlab_runner_user: "gitlab-runner"
-    manager_node: "{{ groups['CPPlanta1'][0] }}"
-    gitlab_runner_config_file: "{{ gitlab_runner_config_dir }}/config.toml"
+    gitlab_runner_config_file: "/srv/gitlab-runner/config/config.toml"  
+    runner_names:
+      - "runner-1-{{ inventory_hostname }}"
+      - "runner-2-{{ inventory_hostname }}"
+      - "runner-3-{{ inventory_hostname }}"
+      - "runner-4-{{ inventory_hostname }}"
 
   tasks:
     - name: Ensure gitlab-runner group exists
@@ -33,30 +34,23 @@
         dest: "{{ gitlab_runner_path }}"
         mode: '0755'
 
-    - name: Ensure GitLab Runner temporary directory exists
-      file:
-        path: /home/gitlab-runner/.ansible/tmp
-        state: directory
-        owner: gitlab-runner
-        group: gitlab-runner
-        mode: '0755'
-
     - name: Create GitLab Runner config directory
       file:
-        path: "{{ gitlab_runner_config_dir }}"
+        path: "/srv/gitlab-runner/config"
         state: directory
         mode: '0755'
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
 
-    - name: Set ownership and permissions on /etc/gitlab-runner
+    - name: Ensure config.toml exists (to avoid overwriting)
       file:
-        path: "{{ gitlab_runner_config_dir }}"
+        path: "{{ gitlab_runner_config_file }}"
+        state: touch
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
-        mode: '0755'
+        mode: '0644'
 
-    - name: Register GitLab Runners
+    - name: Register each GitLab Runner and append to config.toml
       command: >
         {{ gitlab_runner_path }} register
         --non-interactive
@@ -65,33 +59,26 @@
         --registration-token "{{ gitlab_runner_registration_token }}"
         --executor "{{ gitlab_runner_executor }}"
         --docker-image "{{ gitlab_runner_docker_image }}"
-        --description "{{ gitlab_runner_description }}"
-        --tag-list "{{ gitlab_runner_tags }}"
+        --description "{{ item }}"
+        --tag-list "aws, docker, {{ item }}"
         --run-untagged
         --locked=false
         --docker-privileged
         --docker-volumes "/var/run/docker.sock:/var/run/docker.sock"
         --docker-volumes "/srv/gitlab-runner/config:/etc/gitlab-runner"
-      environment:
-        HOME: "/root"
-      args:
-        creates: "{{ gitlab_runner_config_file }}"
-      notify: restart gitlab-runner
+      loop: "{{ runner_names }}"
 
-    - name: Ensure correct permissions for GitLab Runner's config.toml
+    - name: Ensure correct permissions for config.toml
       file:
         path: "{{ gitlab_runner_config_file }}"
         owner: "{{ gitlab_runner_user }}"
         group: "{{ gitlab_runner_user }}"
         mode: '0644'
 
-    - name: Install GitLab Runner service
+    - name: Install GitLab Runner service (single service to manage multiple runners)
       command: "{{ gitlab_runner_path }} install --user {{ gitlab_runner_user }}"
       args:
         creates: "/etc/systemd/system/gitlab-runner.service"
-      notify:
-        - restart gitlab-runner
-        - reload systemd
 
     - name: Reload systemd to apply new services
       systemd:
@@ -108,7 +95,3 @@
       systemd:
         name: gitlab-runner
         state: restarted
-
-    - name: reload systemd
-      systemd:
-        daemon_reload: yes

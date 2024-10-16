@@ -51,7 +51,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: "1G"
+          memory: "1.5G"
       replicas: 1
       restart_policy:
         condition: on-failure
@@ -104,10 +104,10 @@ services:
           cpus: "0.75"
           memory: "1.25G"
         reservations:
-          cpus: "0.25"
+          cpus: "0.35"
           memory: "0.75G"
       mode: replicated
-      replicas: 3
+      replicas: 4
       restart_policy:
         condition: on-failure
 
