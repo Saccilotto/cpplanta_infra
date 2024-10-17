@@ -7,6 +7,9 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
+      - NODE_ID=1                  # Unique node ID for repmgr
+      - NODE_NAME=primary           # Name for repmgr primary node
+      - NODE_HOST=postgres_primary  # Hostname for the primary node
     volumes:
       - primary_data:/var/lib/postgresql/data
     networks:
@@ -14,7 +17,7 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        condition: any
     ports:
       - "5432:5432"  
 
@@ -22,6 +25,12 @@ services:
     image: norohim/postgres-optimal:latest
     environment:
       - ROLE=replica  
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - NODE_ID=2                 # Unique node ID for repmgr replica
+      - NODE_NAME=replica1         # Name for repmgr replica node
+      - NODE_HOST=postgres_replica # Hostname for the replica node
       - REPLICATE_FROM=postgres_primary  
     volumes:
       - replica_data:/var/lib/postgresql/data
@@ -32,20 +41,37 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        condition: any
     ports:
       - "5433:5432"  
+
+  pgbouncer:
+    image: edoburu/pgbouncer
+    environment:
+      - DB_USER=postgres
+      - DB_PASSWORD=postgrespassword
+    volumes:
+      - /etc/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini
+      - /etc/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt
+    networks:
+      - backend_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+    ports:
+      - "6432:6432"
 
   backend:
     image: norohim/cp-planta-backend:latest
     environment:
       - NODE_ENV=production
-      - DB_HOST=postgres_primary
-      - DB_PORT=5432
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=postgres
-      - DATABASE_URL=postgresql://postgres:postgres@postgres_primary:5432/postgres
+      - DATABASE_URL=postgresql://postgres:postgres@pgbouncer:6432/postgres  # Prisma connects via pgBouncer
     networks:
       - backend_network
     deploy:
@@ -54,7 +80,7 @@ services:
           memory: "1.5G"
       replicas: 1
       restart_policy:
-        condition: on-failure
+        condition: any
     ports:
       - "3000:3000"
 
@@ -70,7 +96,7 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        condition: any
     ports:
       - "80:80"  
 
@@ -84,7 +110,7 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        condition: any
     ports:
       - "3001:3001"   
 
@@ -109,7 +135,7 @@ services:
       mode: replicated
       replicas: 4
       restart_policy:
-        condition: on-failure
+        condition: any
 
 networks:
   backend_network:
