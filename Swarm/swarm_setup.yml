@@ -126,13 +126,4 @@
     - name: Show services
       debug:
         var: service_list.stdout_lines
-      run_once: true
-
-    - name: Force update all services to refresh images
-      shell: |
-        services=$(docker service ls -q)
-        for service in $services; do
-          docker service update --force $service
-        done
-      delegate_to: "{{ manager_node }}"
-      run_once: true
+      run_once: trues
