@@ -126,4 +126,4 @@
     - name: Show services
       debug:
         var: service_list.stdout_lines
-      run_once: trues
+      run_once: true
