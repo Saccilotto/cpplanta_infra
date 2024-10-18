@@ -46,13 +46,10 @@ services:
       - "5433:5432"  
 
   pgbouncer:
-    image: edoburu/pgbouncer
+    image: norohim/pgbouncer:latest
     environment:
       - DB_USER=postgres
-      - DB_PASSWORD=postgrespassword
-    volumes:
-      - /etc/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini
-      - /etc/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt
+      - DB_PASSWORD=postgres
     networks:
       - backend_network
     deploy:

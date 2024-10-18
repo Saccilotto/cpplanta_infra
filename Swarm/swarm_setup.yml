@@ -25,6 +25,26 @@
           - acl
           - python3
           - python3-pip
+          - lsb-release
+        state: present
+        update_cache: yes
+      become: yes
+
+    - name: Add Docker's official GPG key and save it in the recommended keyring
+      ansible.builtin.command:
+        cmd: "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg"
+      become: yes
+
+    - name: Add Docker APT repository with GPG key
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker.list
+      become: yes
+
+    - name: Install Docker packages
+      apt:
+        name:
           - docker-ce
           - docker-ce-cli
           - containerd.io
@@ -32,23 +52,13 @@
         update_cache: yes
       become: yes
 
-    - name: Install Docker APT repository key
-      apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
-
-    - name: Add Docker APT repository
-      apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-        state: present
-
-    - name: Install Docker SDK for Python using apt
+    - name: Install Docker SDK for Python
       apt:
         name: python3-docker
         state: present
       become: yes
 
-    - name: Add users to docker group
+    - name: Add users to the Docker group
       user:
         name: "{{ item }}"
         groups: docker
