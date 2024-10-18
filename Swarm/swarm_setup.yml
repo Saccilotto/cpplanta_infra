@@ -118,8 +118,8 @@
       run_once: true
 
     - name: Wait for services to stabilize
-      pause:
-        seconds: 45
+      wait_for:
+        seconds: 30
       delegate_to: "{{ manager_node }}"
       run_once: true
 
