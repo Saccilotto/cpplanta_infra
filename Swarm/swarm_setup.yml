@@ -117,12 +117,6 @@
       delegate_to: "{{ manager_node }}"
       run_once: true
 
-    - name: Wait for services to stabilize
-      wait_for:
-        seconds: 30
-      delegate_to: "{{ manager_node }}"
-      run_once: true
-
     - name: Verify services are running
       shell: docker service ls
       register: service_list
