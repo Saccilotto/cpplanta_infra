@@ -134,10 +134,10 @@
         var: service_list.stdout_lines
       run_once: true
 
-    - name: Force update any failed services
+    - name: Force update all services to refresh images
       shell: |
-        failed_services=$(docker service ls --filter "desired-state=running" --filter "replicas=0" -q)
-        for service in $failed_services; do
+        services=$(docker service ls -q)
+        for service in $services; do
           docker service update --force $service
         done
       delegate_to: "{{ manager_node }}"
