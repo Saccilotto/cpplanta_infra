@@ -4,6 +4,7 @@
   vars:
     manager_node: "{{ groups['CPPlanta1'][0] }}"
     ansible_python_interpreter: /usr/bin/python3
+    expected_replica_count: 4 
 
   tasks:
     - name: Remove old Docker versions
@@ -163,36 +164,36 @@
       run_once: true
 
     # If local run these will fail
-    - name: Verify GitLab Runners are running
-      shell: docker service ls --filter "name=CP-Planta_runners" --format "{{ '{{' }}.Name{{ '}}' }} {{ '{{' }}.Replicas{{ '}}' }} {{ '{{' }}.DesiredState{{ '}}' }}"
-      register: runner_service_list
-      delegate_to: "{{ manager_node }}"
-      run_once: true
-      ignore_errors: yes
-
-    - name: Show GitLab Runner services
-      debug:
-        var: runner_service_list.stdout_lines
-      run_once: true
+    - name: Check GitLab Runner service status
+      shell: |
+        docker service ls --filter "name=CP-Planta_runners" --format "{{.Name}} {{.Replicas}}"
+      register: runner_service_status
+      changed_when: false
+      failed_when: runner_service_status.stdout_lines == []
       ignore_errors: yes
 
     - name: Ensure GitLab Runners are active
       shell: |
-        docker service update --force CP-Planta_runners
-      delegate_to: "{{ manager_node }}"
-      run_once: true
-      ignore_errors: yes
+        docker service scale CP-Planta_runners={{ expected_replica_count }}
+      when: runner_service_status.stdout_lines is defined and
+            "'{{ expected_replica_count }}' not in runner_service_status.stdout_lines[0]"
+
+    - name: Show GitLab Runner service status
+      debug:
+        var: runner_service_status.stdout_lines
 
     - name: Force update any failed services
       shell: |
         failed_services=$(docker service ls --filter "desired-state=running" --filter "replicas=0" -q)
-        for service in $failed_services; do
-          docker service update --force $service
-        done
+        if [ -n "$failed_services" ]; then
+          for service in $failed_services; do
+            docker service update --force $service;
+          done
+        fi
       delegate_to: "{{ manager_node }}"
       run_once: true
-      async: 75  
-      poll: 0     
+      async: 75
+      poll: 0
       ignore_errors: yes
 
     - name: Fail if force update failed
