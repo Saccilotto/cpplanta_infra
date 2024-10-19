@@ -175,17 +175,17 @@
       run_once: true
       ignore_errors: yes
 
-    - name: Force update any failed non-runner services
-      shell: |
-        failed_services=$(docker service ls --filter "desired-state=running" --filter "replicas=0" -q --filter "name=CP-Planta_backend,CP-Planta_frontend,CP-Planta_postgres_primary,CP-Planta_postgres_replica,CP-Planta_pgadmin")
-        if [ -n "$failed_services" ]; then
-          for service in $failed_services; do
-            docker service update --force $service || exit 1
-          done
-        fi
-      delegate_to: "{{ manager_node }}"
-      run_once: true
-      register: result
+- name: Force update any failed services
+  shell: |
+    failed_services=$(docker service ls --filter "desired-state=running" --filter "replicas=0" -q)
+    for service in $failed_services; do
+      docker service update --force $service
+    done
+  delegate_to: "{{ manager_node }}"
+  run_once: true
+  async: 300  # Allow the task to run for up to 300 seconds (5 minutes)
+  poll: 0     # Run in the background
+  ignore_errors: yes
 
     - name: Fail if force update failed
       fail:
