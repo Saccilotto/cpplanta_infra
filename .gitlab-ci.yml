@@ -33,7 +33,6 @@ deploy:
     - sed -i "s|<path-pem>|$PEM_FILE_PATH|" static_ip.ini  # Substitui o caminho do arquivo PEM
     # Certifique-se de que o script de deploy tenha permissão de execução
     - cat static_ip.ini
-    - chmod +x ./Configuration/run_config.sh
     - chmod +x ./deploy.sh
     # Executa o script de deploy
     - bash deploy.sh
