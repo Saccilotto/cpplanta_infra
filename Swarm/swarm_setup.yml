@@ -136,6 +136,8 @@
         - CP-Planta_pgbouncer 
       delegate_to: "{{ manager_node }}"
       run_once: true
+      async: 100  
+      poll: 0   
 
     - name: Wait for services to stabilize
       pause:
@@ -183,8 +185,8 @@
         done
       delegate_to: "{{ manager_node }}"
       run_once: true
-      async: 300  # Allow the task to run for up to 300 seconds (5 minutes)
-      poll: 0     # Run in the background
+      async: 100  
+      poll: 0     
       ignore_errors: yes
 
     - name: Fail if force update failed
