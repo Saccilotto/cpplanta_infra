@@ -154,22 +154,26 @@
         var: service_list.stdout_lines
       run_once: true
 
+    # If local run these will fail
     - name: Verify GitLab Runners are running
       shell: docker service ls --filter "name=CP-Planta_runners" --format "{{ '{{' }}.Name{{ '}}' }} {{ '{{' }}.Replicas{{ '}}' }} {{ '{{' }}.DesiredState{{ '}}' }}"
       register: runner_service_list
       delegate_to: "{{ manager_node }}"
       run_once: true
+      ignore_errors: yes
 
     - name: Show GitLab Runner services
       debug:
         var: runner_service_list.stdout_lines
       run_once: true
+      ignore_errors: yes
 
     - name: Ensure GitLab Runners are active
       shell: |
         docker service update --force CP-Planta_runners
       delegate_to: "{{ manager_node }}"
       run_once: true
+      ignore_errors: yes
 
     - name: Force update any failed non-runner services
       shell: |
