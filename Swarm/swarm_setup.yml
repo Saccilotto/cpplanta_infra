@@ -142,7 +142,7 @@
     - name: Wait for services to stabilize
       pause:
         seconds: 30
-      prompt: no  
+        prompt: no  
       delegate_to: "{{ manager_node }}"
       run_once: true
 
