@@ -72,9 +72,6 @@ services:
       - backend_network
     deploy:
       replicas: 1
-      resources:
-        limits:
-          memory: "1.5G"
       restart_policy:
         condition: any
     ports:
@@ -128,7 +125,7 @@ services:
           cpus: "0.75"
           memory: "1.25G"
         reservations:
-          cpus: "0.35"
+          cpus: "0.5"
           memory: "0.75G"
       restart_policy:
         condition: any
