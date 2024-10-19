@@ -88,15 +88,6 @@
       register: swarm_info
       when: inventory_hostname == manager_node
 
-    - name: Ensure manager node leaves the Swarm
-      docker_swarm:
-        state: absent
-        force: true
-      when: 
-        - inventory_hostname == manager_node
-        - swarm_info.docker_swarm_active == true
-      ignore_errors: true
-
     - name: Initialize Swarm on manager
       docker_swarm:
         state: present
@@ -109,27 +100,22 @@
       delegate_to: "{{ manager_node }}"
       run_once: true
 
-    - name: Debug Swarm Join Tokens
-      debug:
-        var: swarm_info
-      run_once: true
-
-    - name: Ensure all workers leave the Swarm
-      docker_swarm:
-        state: absent
-        force: true
-      when: 
-        - inventory_hostname != manager_node
-        - swarm_info.docker_swarm_active == true
-      ignore_errors: true
-
     - name: Join workers to Swarm
       docker_swarm:
         state: present
         join_token: "{{ swarm_info.swarm_facts.JoinTokens.Worker }}"
         remote_addrs:
           - "{{ groups['CPPlanta1'][0] }}"
-      when: inventory_hostname != manager_node
+      when:
+        - inventory_hostname != manager_node
+        - swarm_info.docker_swarm_active == false  
+  
+    - name: Ensure backend and frontend networks exist
+      shell: |
+        docker network create --driver overlay backend_network || true
+        docker network create --driver overlay frontend_network || true
+      delegate_to: "{{ manager_node }}"
+      run_once: true
 
     - name: Copy stack.yml to manager
       copy:
@@ -145,26 +131,56 @@
       delegate_to: "{{ manager_node }}"
       run_once: true
 
-    - name: Wait for services to stabilize
-      pause:
-        seconds: 60
+    - name: Update non-runner services (force update)
+      shell: |
+        docker service update --force {{ item }}
+      loop:
+        - CP-Planta_backend
+        - CP-Planta_frontend
+        - CP-Planta_postgres_primary
+        - CP-Planta_postgres_replica 
+        - CP-Planta_pgadmin           
+        - CP-Planta_pgbouncer 
       delegate_to: "{{ manager_node }}"
       run_once: true
 
-    - name: Verify services are running
-      shell: docker service ls
+    - name: Wait for services to stabilize
+      pause:
+        seconds: 30
+      delegate_to: "{{ manager_node }}"
+      run_once: true
+
+    - name: Verify non-runner services are running
+      shell: docker service ls --filter "name=CP-Planta_backend,CP-Planta_frontend,CP-Planta_postgres_primary,CP-Planta_postgres_replica,CP-Planta_pgadmin,CP-Planta_pgbouncer" --format "{{ '{{' }}.Name{{ '}}' }} {{ '{{' }}.Replicas{{ '}}' }} {{ '{{' }}.DesiredState{{ '}}' }}"
       register: service_list
       delegate_to: "{{ manager_node }}"
       run_once: true
 
-    - name: Show services
+    - name: Show non-runner services
       debug:
         var: service_list.stdout_lines
       run_once: true
 
-    - name: Force update any failed services
+    - name: Verify GitLab Runners are running
+      shell: docker service ls --filter "name=CP-Planta_runners" --format "{{ '{{' }}.Name{{ '}}' }} {{ '{{' }}.Replicas{{ '}}' }} {{ '{{' }}.DesiredState{{ '}}' }}"
+      register: runner_service_list
+      delegate_to: "{{ manager_node }}"
+      run_once: true
+
+    - name: Show GitLab Runner services
+      debug:
+        var: runner_service_list.stdout_lines
+      run_once: true
+
+    - name: Ensure GitLab Runners are active
       shell: |
-        failed_services=$(docker service ls --filter "desired-state=running" --filter "replicas=0" -q)
+        docker service update --force CP-Planta_runners
+      delegate_to: "{{ manager_node }}"
+      run_once: true
+
+    - name: Force update any failed non-runner services
+      shell: |
+        failed_services=$(docker service ls --filter "desired-state=running" --filter "replicas=0" -q --filter "name=CP-Planta_backend,CP-Planta_frontend,CP-Planta_postgres_primary,CP-Planta_postgres_replica,CP-Planta_pgadmin")
         if [ -n "$failed_services" ]; then
           for service in $failed_services; do
             docker service update --force $service || exit 1
