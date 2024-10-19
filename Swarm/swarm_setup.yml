@@ -166,7 +166,7 @@
     # If local run these will fail
     - name: Check GitLab Runner service status
       shell: |
-        docker service ls --filter "name=CP-Planta_runners" --format "{{.Name}} {{.Replicas}}"
+        docker service ls --filter "name=CP-Planta_runners" --format "{{'{{'}}.Name{{'}}'}} {{'{{'}}.Replicas{{'}}'}}"
       register: runner_service_status
       changed_when: false
       failed_when: runner_service_status.stdout_lines == []
@@ -175,8 +175,7 @@
     - name: Ensure GitLab Runners are active
       shell: |
         docker service scale CP-Planta_runners={{ expected_replica_count }}
-      when: runner_service_status.stdout_lines is defined and
-            "'{{ expected_replica_count }}' not in runner_service_status.stdout_lines[0]"
+      when: runner_service_status.stdout_lines is defined and expected_replica_count not in runner_service_status.stdout_lines[0]
 
     - name: Show GitLab Runner service status
       debug:
@@ -190,6 +189,7 @@
             docker service update --force $service;
           done
         fi
+      register: result 
       delegate_to: "{{ manager_node }}"
       run_once: true
       async: 75
@@ -199,4 +199,4 @@
     - name: Fail if force update failed
       fail:
         msg: "Some services failed to update"
-      when: result.rc != 0
+      when: result.rc != 0  
