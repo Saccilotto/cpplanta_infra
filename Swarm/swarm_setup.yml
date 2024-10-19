@@ -170,12 +170,13 @@
       register: runner_service_status
       changed_when: false
       failed_when: runner_service_status.stdout_lines == []
+      when: ansible_host == "{{ manager_node }}"  # Execute apenas no manager
       ignore_errors: yes
 
     - name: Ensure GitLab Runners are active
       shell: |
         docker service scale CP-Planta_runners={{ expected_replica_count }}
-      when: runner_service_status.stdout_lines is defined and expected_replica_count not in runner_service_status.stdout_lines[0]
+      when: runner_service_status.stdout_lines is defined and runner_service_status.stdout_lines | length > 0 and expected_replica_count not in runner_service_status.stdout_lines[0]
 
     - name: Show GitLab Runner service status
       debug:
