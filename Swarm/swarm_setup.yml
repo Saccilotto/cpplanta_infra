@@ -136,15 +136,20 @@
         - CP-Planta_pgbouncer 
       delegate_to: "{{ manager_node }}"
       run_once: true
-      async: 100  
+      async: 75  
       poll: 0   
 
     - name: Wait for services to stabilize
-      pause:
-        seconds: 30
-        prompt: no  
+      retries: 10
+      delay: 5
+      shell: |
+        running_services=$(docker service ls --filter "desired-state=running" --filter "replicas=0" -q)
+        if [ -n "$running_services" ]; then
+          exit 1
+        fi
       delegate_to: "{{ manager_node }}"
-      run_once: true
+      register: service_check
+      until: service_check.rc == 0
 
     - name: Verify non-runner services are running
       shell: docker service ls --filter "name=CP-Planta_backend,CP-Planta_frontend,CP-Planta_postgres_primary,CP-Planta_postgres_replica,CP-Planta_pgadmin,CP-Planta_pgbouncer" --format "{{ '{{' }}.Name{{ '}}' }} {{ '{{' }}.Replicas{{ '}}' }} {{ '{{' }}.DesiredState{{ '}}' }}"
@@ -186,7 +191,7 @@
         done
       delegate_to: "{{ manager_node }}"
       run_once: true
-      async: 100  
+      async: 75  
       poll: 0     
       ignore_errors: yes
 
