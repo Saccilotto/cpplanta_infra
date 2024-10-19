@@ -3,7 +3,8 @@
   become: yes
   vars:
     manager_node: "{{ groups['CPPlanta1'][0] }}"
-    
+    ansible_python_interpreter: /usr/bin/python3
+
   tasks:
     - name: Remove old Docker versions
       apt:
@@ -85,11 +86,15 @@
     - name: Check if node is already part of a Swarm
       docker_swarm_info:
       register: swarm_info
+      when: inventory_hostname == manager_node
 
-    - name: Ensure all nodes leave the Swarm
+    - name: Ensure manager node leaves the Swarm
       docker_swarm:
         state: absent
-      when: swarm_info.docker_swarm_active == true
+        force: true
+      when: 
+        - inventory_hostname == manager_node
+        - swarm_info.docker_swarm_active == true
       ignore_errors: true
 
     - name: Initialize Swarm on manager
@@ -108,6 +113,15 @@
       debug:
         var: swarm_info
       run_once: true
+
+    - name: Ensure all workers leave the Swarm
+      docker_swarm:
+        state: absent
+        force: true
+      when: 
+        - inventory_hostname != manager_node
+        - swarm_info.docker_swarm_active == true
+      ignore_errors: true
 
     - name: Join workers to Swarm
       docker_swarm:
@@ -164,4 +178,3 @@
       fail:
         msg: "Some services failed to update"
       when: result.rc != 0
-      ignore_errors: true
