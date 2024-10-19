@@ -15,7 +15,7 @@ cd ../Configuration/
 
 #Navigate to Ansible directory and run playbook
 echo "Running Ansible runners playbook..."
-#ANSIBLE_CONFIG=./ansible.cfg ansible-playbook -i ../static_ip.ini ./runners.yml || echo "Warning: runners playbook encountered errors."
+ANSIBLE_CONFIG=./ansible.cfg ansible-playbook -i ../static_ip.ini ./runners.yml || echo "Warning: runners playbook encountered errors."
 
 cd ..
 echo "Deployment complete."

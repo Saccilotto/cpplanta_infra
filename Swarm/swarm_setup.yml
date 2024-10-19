@@ -109,13 +109,6 @@
       when:
         - inventory_hostname != manager_node
         - swarm_info.docker_swarm_active == false  
-  
-    - name: Ensure backend and frontend networks exist
-      shell: |
-        docker network create --driver overlay backend_network || true
-        docker network create --driver overlay frontend_network || true
-      delegate_to: "{{ manager_node }}"
-      run_once: true
 
     - name: Copy stack.yml to manager
       copy:
