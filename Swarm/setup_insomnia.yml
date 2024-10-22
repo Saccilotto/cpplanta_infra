@@ -1,0 +1,56 @@
+---
+- name: Configuração da VM com Insomnia e VNC
+  hosts: localhost 
+  become: yes
+
+  tasks:
+    - name: Atualizar os repositórios e pacotes
+      apt:
+        update_cache: yes
+
+    - name: Instalar ambiente gráfico (Ubuntu GNOME)
+      apt:
+        name: ubuntu-desktop
+        state: present
+
+    - name: Instalar o servidor SSH
+      apt:
+        name: openssh-server
+        state: present
+
+    - name: Instalar servidor VNC
+      apt:
+        name: tightvncserver
+        state: present
+
+    - name: Configurar senha VNC
+      expect:
+        command: vncpasswd
+        responses:
+          Question: "password\n"
+
+    - name: Criar arquivo xstartup do VNC
+      copy:
+        dest: /home/{{ ansible_user }}/.vnc/xstartup
+        content: |
+          #!/bin/sh
+          exec /etc/X11/xinit/xinitrc
+      mode: '0755'
+
+    - name: Iniciar o servidor VNC
+      shell: vncserver :1
+
+    - name: Baixar pacote Insomnia
+      get_url:
+        url: https://updates.insomnia.rest/downloads/ubuntu/latest?&app=com.insomnia.app&source=website
+        dest: /tmp/insomnia.deb
+
+    - name: Instalar Insomnia
+      apt:
+        deb: /tmp/insomnia.deb
+      ignore_errors: yes
+
+    - name: Remover pacote baixado do Insomnia
+      file:
+        path: /tmp/insomnia.deb
+        state: absent
