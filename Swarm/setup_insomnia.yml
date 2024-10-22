@@ -6,6 +6,7 @@
 
   vars:
     ansible_python_interpreter: /usr/bin/python3
+    vnc_password: "password"
 
   tasks:
     - name: Atualizar os repositórios e pacotes
@@ -27,12 +28,20 @@
         name: tightvncserver
         state: present
 
-    - name: Configurar senha VNC
-      expect:
-        command: vncpasswd
-        responses:
-          "Password:": "password\n"
-          "Verify:": "password\n"
+    - name: Criar arquivo temporário de senha VNC
+      copy:
+        content: "{{ vnc_password }}\n{{ vnc_password }}\n\n"
+        dest: "/tmp/vncpass"
+        mode: '0600'
+
+    - name: Configurar senha VNC sem interação
+      command: "vncpasswd -f < /tmp/vncpass"
+      become: yes
+
+    - name: Remover arquivo temporário de senha VNC
+      file:
+        path: "/tmp/vncpass"
+        state: absent
 
     - name: Criar arquivo xstartup do VNC
       copy:
