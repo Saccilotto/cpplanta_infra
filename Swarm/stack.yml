@@ -77,11 +77,24 @@ services:
     ports:
       - "3000:3000"
 
+  insomnia:
+    image: norohim/insomnia:latest  # Use your custom image
+    networks:
+      - backend_network
+    depends_on:
+      - backend
+    ports:
+      - "4000:4000"  # Expose Insomnia on port 4000
+    environment:
+      - INSOMNIA_BACKEND_URL=http://backend:3000  # Backend reference
+
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: norohim/pgadmin:latest
     environment:
       - PGADMIN_DEFAULT_EMAIL=fulano@gmail.com
       - PGADMIN_DEFAULT_PASSWORD=abc123
+    volumes:
+      - ./scripts/pgadmin_setup.sh:/docker-entrypoint-initdb.d/pgadmin_setup.sh
     depends_on:
       - postgres_primary
     networks:

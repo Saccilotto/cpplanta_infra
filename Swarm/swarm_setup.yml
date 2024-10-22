@@ -4,7 +4,6 @@
   vars:
     manager_node: "{{ groups['CPPlanta1'][0] }}"
     ansible_python_interpreter: /usr/bin/python3
-    expected_replica_count: 4 
 
   tasks:
     - name: Remove old Docker versions
@@ -84,6 +83,34 @@
         enabled: true
       become: yes
 
+    # - name: Install NFS utilities
+    #   apt:
+    #     name: nfs-common
+    #     state: present
+    #   become: yes
+
+    # - name: Create mount point for EFS
+    #   file:
+    #     path: /mnt/efs
+    #     state: directory
+    #   become: yes
+
+    # - name: Mount EFS
+    #   mount:
+    #     path: /mnt/efs
+    #     src: "fs-<filesystem-id>.efs.us-east-2.amazonaws.com:/"
+    #     fstype: nfs4
+    #     opts: "nfsvers=4.1,rw"
+    #     state: mounted
+    #   become: yes
+
+    # - name: Ensure EFS mount persists on reboot
+    #   lineinfile:
+    #     path: /etc/fstab
+    #     line: "fs-<filesystem-id>.efs.us-east-2.amazonaws.com:/ /mnt/efs nfs4 defaults,_netdev 0 0"
+    #     create: yes
+    #   become: yes
+    
     - name: Check if node is already part of a Swarm
       docker_swarm_info:
       register: swarm_info
