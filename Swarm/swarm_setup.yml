@@ -165,6 +165,12 @@
       until: service_check.rc == 0
 
     - name: Show service status
-      shell: docker service ls
+      command: docker service ls
       delegate_to: "{{ manager_node }}"
       run_once: true
+      register: service_status
+    
+    - name: Display service status
+      debug:
+        var: service_status.stdout_lines
+    
