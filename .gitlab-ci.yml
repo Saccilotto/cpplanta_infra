@@ -11,8 +11,6 @@ variables:
 
 default:
   image: alpine:latest  # Usando Alpine como base
-  services:
-    - docker:dind  # Docker in Docker
 
 before_script:
   - echo "$PEM_FILE_CONTENT" > $PEM_FILE_PATH  # Recupera o conteúdo do arquivo PEM 2 de uma variável de ambiente
