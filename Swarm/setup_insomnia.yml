@@ -1,6 +1,6 @@
 ---
 - name: Configuração da VM com Insomnia e VNC
-  hosts: localhost 
+  hosts: localhost
   become: true
   become_method: sudo
 
@@ -28,36 +28,41 @@
         name: tightvncserver
         state: present
 
-    - name: Criar arquivo temporário de senha VNC
-      copy:
-        content: "{{ vnc_password }}\n{{ vnc_password }}\n\n"
-        dest: "/tmp/vncpass"
-        mode: '0600'
-
-    - name: Configurar senha VNC sem interação
-      command: "vncpasswd -f < /tmp/vncpass"
+    - name: Definir senha do VNC sem interação
+      expect:
+        command: vncpasswd
+        responses:
+          "Password:": "{{ vnc_password }}"
+          "Verify:": "{{ vnc_password }}"
+          "Would you like to enter a view-only password (y/n)?": "n"
       become: yes
+      when: vnc_password is defined
 
-    - name: Remover arquivo temporário de senha VNC
+    - name: Criar diretório .vnc
       file:
-        path: "/tmp/vncpass"
-        state: absent
+        path: /home/{{ ansible_user_id }}/.vnc
+        state: directory
+        mode: '0755'
 
     - name: Criar arquivo xstartup do VNC
       copy:
-        dest: /home/{{ ansible_user }}/.vnc/xstartup
+        dest: /home/{{ ansible_user_id }}/.vnc/xstartup
         content: |
           #!/bin/sh
           exec /etc/X11/xinit/xinitrc
         mode: '0755'
 
+    - name: Parar o servidor VNC se estiver rodando
+      shell: "vncserver -kill :1"
+      ignore_errors: yes
+
     - name: Iniciar o servidor VNC
       shell: vncserver :1
+      become: yes
 
     - name: Baixar pacote Insomnia
       get_url:
-        url: https://updates.insomnia.rest/downloads/ubuntu/latest?&app=com.insomnia.app&source=website
-        dest: /tmp/insomnia.deb
+        url: https://updates.insomnia.rest/downloads/ubuntu/latest?&app=com.insomnia.app&source=websi>        dest: /tmp/insomnia.deb
 
     - name: Instalar Insomnia
       apt:

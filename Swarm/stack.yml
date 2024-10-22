@@ -102,27 +102,12 @@ services:
     ports:
       - "80:80"
 
-  insomnia_setup:
-    image: ansible/ansible-runner
-    volumes:
-      - /home/ubuntu/ansible-config:/playbooks  # Volume mapeado para a pasta correta nas VMs
-    environment:
-      - ANSIBLE_CONFIG=/playbooks/ansible.cfg
-    command: ansible-playbook /playbooks/setup_insomnia.yml
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-    networks:
-      - backend_network
-
   insomnia:
-    image: norohim/insomnia:latest
+    image: kong/inso:latest
     ports:
       - "4000:4000"
     volumes:
-      - insomnia_data:/app/data  # Volume persistente para o Insomnia
+      - insomnia_data:/app/data  
     networks:
       - backend_network
     deploy:
