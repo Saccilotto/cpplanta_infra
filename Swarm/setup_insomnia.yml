@@ -3,7 +3,8 @@
   hosts: localhost
   become: true
   become_method: sudo
-
+  remote_user: ubuntu
+  connection: local
   vars:
     ansible_python_interpreter: /usr/bin/python3
     vnc_password: "password"
@@ -69,6 +70,12 @@
       apt:
         deb: /tmp/insomnia.deb
       ignore_errors: yes
+
+    - name: Iniciar o Insomnia na sessão VNC
+      shell: |
+        export DISPLAY=:1
+        nohup insomnia > /dev/null 2>&1 &
+      become: yes
 
     - name: Remover pacote baixado do Insomnia
       file:

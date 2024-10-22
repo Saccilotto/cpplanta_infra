@@ -102,21 +102,21 @@ services:
     ports:
       - "80:80"
 
-  insomnia:
-    image: kong/inso:latest
-    ports:
-      - "4000:4000"
-    volumes:
-      - insomnia_data:/app/data  
-    networks:
-      - backend_network
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-    depends_on:
-      - insomnia_setup
+  # insomnia:
+  #   image: kong/inso:latest
+  #   ports:
+  #     - "4000:4000"
+  #   volumes:
+  #     - insomnia_data:/app/data  
+  #   networks:
+  #     - backend_network
+  #   deploy:
+  #     replicas: 1
+  #     placement:
+  #       constraints:
+  #         - node.role == worker
+  #   depends_on:
+  #     - insomnia_setup
 
   frontend:
     image: norohim/cp-planta-frontend:latest
@@ -170,5 +170,5 @@ volumes:
     driver: local
   pgadmin_data:
     driver: local
-  insomnia_data:  # Volume persistente para Insomnia
-    driver: local
+  # insomnia_data:  # Volume persistente para Insomnia
+  #   driver: local
