@@ -79,6 +79,12 @@ services:
 
   pgadmin:
     image: norohim/pgadmin:latest
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     environment:
       - PGADMIN_DEFAULT_EMAIL=fulano@gmail.com
       - PGADMIN_DEFAULT_PASSWORD=abc123
@@ -90,12 +96,7 @@ services:
       replicas: 1
       restart_policy:
         condition: any
-      healthcheck:
-        test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-        start_period: 20s
+
     volumes:
       - pgadmin_data:/var/lib/pgadmin 
     ports:
@@ -104,10 +105,10 @@ services:
   insomnia_setup:
     image: ansible/ansible-runner
     volumes:
-      - /home/{{ ansible_user }}/ansible-config:/playbooks  # Volume mapeado para a pasta correta nas VMs
+      - /home/ubuntu/ansible-config:/playbooks  # Volume mapeado para a pasta correta nas VMs
     environment:
       - ANSIBLE_CONFIG=/playbooks/ansible.cfg
-    command: ansible-playbook -i /playbooks/static_ip.ini /playbooks/setup_insomnia.yml
+    command: ansible-playbook /playbooks/setup_insomnia.yml
     deploy:
       replicas: 1
       placement:
@@ -116,7 +117,7 @@ services:
     networks:
       - backend_network
 
-  insomnia_service:
+  insomnia:
     image: norohim/insomnia:latest
     ports:
       - "4000:4000"
@@ -130,8 +131,7 @@ services:
         constraints:
           - node.role == worker
     depends_on:
-      insomnia_setup:
-        condition: service_completed_successfully
+      - insomnia_setup
 
   frontend:
     image: norohim/cp-planta-frontend:latest

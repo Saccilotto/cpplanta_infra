@@ -116,30 +116,11 @@
         state: directory
         mode: '0755'
 
-    - name: Copiar arquivo de inventário para as VMs
-      copy:
-        src: ../static_ip.ini  # Caminho local de onde o playbook está sendo executado
-        dest: /home/{{ ansible_user }}/ansible-config/inventory.ini
-      when: inventory_hostname in groups['all']  # Copia para todos os hosts no grupo 'all'
-
-    - name: Copiar arquivo de configuração Ansible para as VMs
-      copy:
-        src: ./ansible.cfg  # Caminho local de onde o playbook está sendo executado
-        dest: /home/{{ ansible_user }}/ansible-config/ansible.cfg
-      when: inventory_hostname in groups['all']
-
     - name: Copiar playbook de configuração Insomnia para as VMs
       copy:
         src: ./setup_insomnia.yml  # Caminho local de onde o playbook está sendo executado
         dest: /home/{{ ansible_user }}/ansible-config/setup_insomnia.yml
       when: inventory_hostname in groups['all']
-
-    - name: Copy stack.yml to manager
-      copy:
-        src: ./stack.yml
-        dest: /home/{{ ansible_ssh_user }}/stack.yml
-      delegate_to: "{{ manager_node }}"
-      run_once: true
 
     - name: Copy stack.yml to manager
       copy:

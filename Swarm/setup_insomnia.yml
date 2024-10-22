@@ -1,7 +1,11 @@
 ---
 - name: Configuração da VM com Insomnia e VNC
   hosts: localhost 
-  become: yes
+  become: true
+  become_method: sudo
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
 
   tasks:
     - name: Atualizar os repositórios e pacotes
@@ -27,7 +31,8 @@
       expect:
         command: vncpasswd
         responses:
-          Question: "password\n"
+          "Password:": "password\n"
+          "Verify:": "password\n"
 
     - name: Criar arquivo xstartup do VNC
       copy:
@@ -35,7 +40,7 @@
         content: |
           #!/bin/sh
           exec /etc/X11/xinit/xinitrc
-      mode: '0755'
+        mode: '0755'
 
     - name: Iniciar o servidor VNC
       shell: vncserver :1
