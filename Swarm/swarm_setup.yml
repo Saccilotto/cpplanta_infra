@@ -3,7 +3,7 @@
   become: yes
   vars:
     manager_node: "{{ groups['CPPlanta1'][0] }}"
-    first_worker: "{{ groups['CPPlanta2'][1] }}"
+    first_worker: "{{ groups['CPPlanta2'][0] }}"
     ansible_python_interpreter: /usr/bin/python3
 
   tasks:
@@ -113,15 +113,15 @@
 
     - name: Criar diretório de configuração do Ansible local nas VMs
       file:
-        path: /home/{{ ansible_user }}/ansible-config
+        path: /home/ubuntu/ansible-config
         state: directory
         mode: '0755'
       delegate_to: "{{ first_worker }}"
 
     - name: Copiar playbook de configuração Insomnia para as VMs
       copy:
-        src: ./setup_insomnia.yml  # Caminho local de onde o playbook está sendo executado
-        dest: /home/{{ ansible_user }}/ansible-config/setup_insomnia.yml
+        src: ./setup_insomnia.yml  
+        dest: /home/ubuntu/ansible-config/setup_insomnia.yml
       delegate_to: "{{ first_worker }}"
 
     - name: Copy stack.yml to manager
@@ -132,7 +132,7 @@
       run_once: true
 
     - name: Rodar o playbook de configuração do Insomnia no worker
-      shell: ansible-playbook /home/{{ ansible_user }}/ansible-config/setup_insomnia.yml -i localhost,
+      shell: ansible-playbook /home/ubuntu/ansible-config/setup_insomnia.yml -i localhost, -vvv
       delegate_to: "{{ first_worker }}"
       run_once: true
 

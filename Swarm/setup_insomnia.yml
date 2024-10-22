@@ -62,7 +62,8 @@
 
     - name: Baixar pacote Insomnia
       get_url:
-        url: https://updates.insomnia.rest/downloads/ubuntu/latest?&app=com.insomnia.app&source=websi>        dest: /tmp/insomnia.deb
+        url: https://updates.insomnia.rest/downloads/ubuntu/latest?&app=com.insomnia.app&source=websi>       
+        dest: /tmp/insomnia.deb
 
     - name: Instalar Insomnia
       apt:
