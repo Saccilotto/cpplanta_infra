@@ -163,3 +163,8 @@
       delegate_to: "{{ manager_node }}"
       register: service_check
       until: service_check.rc == 0
+
+    - name: Show service status
+      shell: docker service ls
+      delegate_to: "{{ manager_node }}"
+      run_once: true
