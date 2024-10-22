@@ -107,7 +107,7 @@ services:
       - /home/{{ ansible_user }}/ansible-config:/playbooks  # Volume mapeado para a pasta correta nas VMs
     environment:
       - ANSIBLE_CONFIG=/playbooks/ansible.cfg
-    command: ansible-playbook -i /playbooks/inventory.ini /playbooks/setup_insomnia.yml
+    command: ansible-playbook -i /playbooks/static_ip.ini /playbooks/setup_insomnia.yml
     deploy:
       replicas: 1
       placement:

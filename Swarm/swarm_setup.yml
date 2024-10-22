@@ -118,7 +118,7 @@
 
     - name: Copiar arquivo de inventário para as VMs
       copy:
-        src: ./inventory.ini  # Caminho local de onde o playbook está sendo executado
+        src: ../static_ip.ini  # Caminho local de onde o playbook está sendo executado
         dest: /home/{{ ansible_user }}/ansible-config/inventory.ini
       when: inventory_hostname in groups['all']  # Copia para todos os hosts no grupo 'all'
 
