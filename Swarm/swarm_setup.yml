@@ -134,6 +134,7 @@
         - CP-Planta_postgres_replica 
         - CP-Planta_pgadmin           
         - CP-Planta_pgbouncer 
+        - CP-Planta_insomnia
       delegate_to: "{{ manager_node }}"
       run_once: true
       async: 75  
