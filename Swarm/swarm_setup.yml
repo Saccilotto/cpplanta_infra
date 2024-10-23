@@ -153,9 +153,9 @@
       register: service_check
       until: service_check.rc == 0
 
-    - name: Wait for 15 seconds to show proper service status
+    - name: Wait for 25 seconds to show proper service status
       wait_for:
-        timeout: 15
+        timeout: 25
 
     - name: Show service status
       command: docker service ls
