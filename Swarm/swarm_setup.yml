@@ -111,32 +111,12 @@
         - inventory_hostname != manager_node
         - swarm_info.docker_swarm_active == false  
 
-    - name: Criar diretório de configuração do Ansible local nas VMs
-      file:
-        path: /home/ubuntu/ansible-config
-        state: directory
-        mode: '0755'
-      delegate_to: "{{ first_worker }}"
-
-    # - name: Copiar playbook de configuração Insomnia para as VMs
-    #   copy:
-    #     src: ./setup_insomnia.yml  
-    #     dest: /home/ubuntu/ansible-config/setup_insomnia.yml
-    #   delegate_to: "{{ first_worker }}"
-
     - name: Copy stack.yml to manager
       copy:
         src: ./stack.yml
         dest: /home/{{ ansible_ssh_user }}/stack.yml
       delegate_to: "{{ manager_node }}"
-      run_once: true
-
-    # - name: Rodar o playbook de configuração do Insomnia no worker
-    #   shell: ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook /home/ubuntu/ansible-config/setup_insomnia.yml -i localhost, -vvv
-    #   delegate_to: "{{ first_worker }}"
-    #   run_once: true
-    #   async: 300
-    #   poll: 5     
+      run_once: true 
 
     - name: Deploy the stack on manager (with force update)
       shell: docker stack deploy --with-registry-auth --resolve-image always -c /home/{{ ansible_ssh_user }}/stack.yml CP-Planta
@@ -155,7 +135,7 @@
         - CP-Planta_postgres_replica 
         - CP-Planta_pgadmin           
         - CP-Planta_pgbouncer 
-        - CP-Planta_insomnia
+        - CP-Planta_hoppscotch
       delegate_to: "{{ manager_node }}"
       run_once: true
       async: 75  
@@ -173,6 +153,10 @@
       register: service_check
       until: service_check.rc == 0
 
+    - name: Wait for 15 seconds to show proper service status
+      wait_for:
+        timeout: 15
+
     - name: Show service status
       command: docker service ls
       delegate_to: "{{ manager_node }}"
@@ -182,4 +166,3 @@
     - name: Display service status
       debug:
         var: service_status.stdout_lines
-    

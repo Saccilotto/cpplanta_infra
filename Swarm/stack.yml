@@ -68,6 +68,7 @@ services:
       - DB_PASSWORD=postgres
       - DB_NAME=postgres
       - DATABASE_URL=postgresql://postgres:postgres@pgbouncer:6432/postgres
+      - JWT_SECRET=supersecretkey 
     networks:
       - backend_network
     deploy:
@@ -96,27 +97,23 @@ services:
       replicas: 1
       restart_policy:
         condition: any
-
     volumes:
       - pgadmin_data:/var/lib/pgadmin 
     ports:
       - "80:80"
 
-  # insomnia:
-  #   image: kong/inso:latest
-  #   ports:
-  #     - "4000:4000"
-  #   volumes:
-  #     - insomnia_data:/app/data  
-  #   networks:
-  #     - backend_network
-  #   deploy:
-  #     replicas: 1
-  #     placement:
-  #       constraints:
-  #         - node.role == worker
-  #   depends_on:
-  #     - insomnia_setup
+  hoppscotch:
+    image: hoppscotch/hoppscotch
+    ports:
+      - "4000:4000" 
+    volumes:
+      - ./config/hoppscotch:/app/config 
+    networks:
+      - backend_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
   frontend:
     image: norohim/cp-planta-frontend:latest
@@ -170,5 +167,5 @@ volumes:
     driver: local
   pgadmin_data:
     driver: local
-  # insomnia_data:  # Volume persistente para Insomnia
-  #   driver: local
+  hoppscotch_data:
+    driver: local
