@@ -1,4 +1,67 @@
 services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=false" 
+      - "--providers.docker=true"
+      - "--providers.docker.swarmMode=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.le.acme.tlschallenge=true"
+      - "--certificatesresolvers.le.acme.email=sacilotto.andre@gmail.com"
+      - "--certificatesresolvers.le.acme.storage=/acme.json"
+      - "--log.level=INFO"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "traefik-certificates:/acme.json"
+    networks:
+      - backend_network
+      - frontend_network
+      - traefik_network
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        # Roteador HTTP para redirecionamento
+        - "traefik.http.routers.traefik-http.rule=Host(`cpplanta-traefik.duckdns.org`)"
+        - "traefik.http.routers.traefik-http.entrypoints=web"
+        - "traefik.http.routers.traefik-http.middlewares=redirect-to-https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+        # Roteador HTTPS para o dashboard
+        - "traefik.http.routers.traefik-https.rule=Host(`cpplanta-traefik.duckdns.org`)"
+        - "traefik.http.routers.traefik-https.entrypoints=websecure"
+        - "traefik.http.routers.traefik-https.service=api@internal"
+        - "traefik.http.middlewares.auth.basicauth.users=trafico:$apr1$sPVjgY2d$9zfYktoeLx/jZRZ7BygZO."
+        - "traefik.http.routers.traefik-https.middlewares=auth"
+        # Security middleware
+        - "traefik.http.middlewares.ratelimit.ratelimit.average=300"
+        - "traefik.http.middlewares.ratelimit.ratelimit.burst=150"
+        - "traefik.http.routers.traefik-https.middlewares=auth,ratelimit"
+        # Security headers
+        - "traefik.http.middlewares.secure-headers.headers.stsSeconds=31536000"
+        - "traefik.http.middlewares.secure-headers.headers.frameDeny=true"
+        - "traefik.http.middlewares.secure-headers.headers.contentTypeNosniff=true"
+        - "traefik.http.middlewares.secure-headers.headers.browserXssFilter=true"
+        - "traefik.http.routers.frontend.middlewares=secure-headers"
+    restart_policy:
+      condition: unless-stopped
+
+  duckdns:
+    image: linuxserver/duckdns
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Sao_Paulo
+      - SUBDOMAINS=cpplanta-traefik,cpplanta-swagger,cpplanta-pgadmin,cpplanta-frontend
+      - TOKEN=ab25d043-0943-4338-88c7-315b3973ca90
+    networks:
+      - traefik_network
+    restart: unless-stopped
+
   postgres_primary:
     image: norohim/postgres-optimal:latest
     environment:
@@ -71,6 +134,13 @@ services:
     networks:
       - backend_network
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.swagger.entrypoints=websecure"
+        - "traefik.http.routers.swagger.rule=Host(`cpplanta-swagger.duckdns.org`) && PathPrefix(`/api`)"
+        - "traefik.http.routers.swagger.middlewares=swagger-strip-prefix"
+        - "traefik.http.middlewares.swagger-strip-prefix.stripPrefix.prefixes=/api"
+        - "traefik.http.services.swagger.loadbalancer.server.port=3000"
       replicas: 1
       restart_policy:
         condition: any
@@ -93,23 +163,29 @@ services:
     networks:
       - backend_network
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.pgadmin.entrypoints=websecure"
+        - "traefik.http.routers.pgadmin.rule=Host(`cpplanta-pgadmin.duckdns.org`)"
+        - "traefik.http.services.pgadmin.loadbalancer.server.port=80"
       replicas: 1
       restart_policy:
         condition: any
     volumes:
       - pgadmin_data:/var/lib/pgadmin 
-    ports:
-      - "80:80"
 
   hoppscotch:
-    image: hoppscotch/hoppscotch
-    ports:
-      - "4000:4000" 
+    image: hoppscotch/hoppscotch:latest
     volumes:
       - ./config/hoppscotch:/app/config 
     networks:
       - backend_network
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.pgadmin.entrypoints=websecure"
+        - "traefik.http.routers.pgadmin.rule=Host(`cpplanta-hoppscotch.duckdns.org`)"
+        - "traefik.http.services.pgadmin.loadbalancer.server.port=4000"
       replicas: 1
       restart_policy:
         condition: on-failure
@@ -122,11 +198,14 @@ services:
     networks:
       - frontend_network
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.frontend.entrypoints=websecure"
+        - "traefik.http.routers.frontend.rule=Host(`cpplanta-frontend.duckdns.org`)"
+        - "traefik.http.services.frontend.loadbalancer.server.port=3001"
       replicas: 1
       restart_policy:
         condition: any
-    ports:
-      - "3001:3001"
 
   runners:
     image: gitlab/gitlab-runner:latest
@@ -158,6 +237,8 @@ networks:
     driver: overlay
   runner_network:
     driver: overlay
+  traefik_network:
+    driver: overlay
 
 volumes:
   primary_data:
@@ -168,3 +249,5 @@ volumes:
     driver: local
   hoppscotch_data:
     driver: local
+  traefik-certificates:
+    driver: overlay
