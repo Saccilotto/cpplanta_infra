@@ -24,6 +24,8 @@ services:
       - traefik_network
     deploy:
       replicas: 1
+      restart_policy:
+        condition: unless-stopped
       labels:
         - "traefik.enable=true"
         # Roteador HTTP para redirecionamento
@@ -35,7 +37,7 @@ services:
         - "traefik.http.routers.traefik-https.rule=Host(`cpplanta-traefik.duckdns.org`)"
         - "traefik.http.routers.traefik-https.entrypoints=websecure"
         - "traefik.http.routers.traefik-https.service=api@internal"
-        - "traefik.http.middlewares.auth.basicauth.users=trafico:$apr1$sPVjgY2d$9zfYktoeLx/jZRZ7BygZO."
+        - "traefik.http.middlewares.auth.basicauth.users=trafico:$$apr1$$sPVjgY2d$9zfYktoeLx/jZRZ7BygZO."
         - "traefik.http.routers.traefik-https.middlewares=auth"
         # Security middleware
         - "traefik.http.middlewares.ratelimit.ratelimit.average=300"
@@ -47,8 +49,6 @@ services:
         - "traefik.http.middlewares.secure-headers.headers.contentTypeNosniff=true"
         - "traefik.http.middlewares.secure-headers.headers.browserXssFilter=true"
         - "traefik.http.routers.frontend.middlewares=secure-headers"
-    restart_policy:
-      condition: unless-stopped
 
   duckdns:
     image: linuxserver/duckdns
@@ -60,7 +60,11 @@ services:
       - TOKEN=ab25d043-0943-4338-88c7-315b3973ca90
     networks:
       - traefik_network
-    restart: unless-stopped
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
 
   postgres_primary:
     image: norohim/postgres-optimal:latest
@@ -144,9 +148,7 @@ services:
       replicas: 1
       restart_policy:
         condition: any
-    ports:
-      - "3000:3000"
-
+        
   pgadmin:
     image: norohim/pgadmin:latest
     healthcheck:
@@ -250,4 +252,4 @@ volumes:
   hoppscotch_data:
     driver: local
   traefik-certificates:
-    driver: overlay
+    driver: local
