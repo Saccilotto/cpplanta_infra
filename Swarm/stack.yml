@@ -37,7 +37,7 @@ services:
         - "traefik.http.routers.traefik-https.rule=Host(`cpplanta-traefik.duckdns.org`)"
         - "traefik.http.routers.traefik-https.entrypoints=websecure"
         - "traefik.http.routers.traefik-https.service=api@internal"
-        - "traefik.http.middlewares.auth.basicauth.users=trafico:$$apr1$$sPVjgY2d$9zfYktoeLx/jZRZ7BygZO."
+        - "traefik.http.middlewares.auth.basicauth.users=trafico:$$apr1$$sPVjgY2d$$9zfYktoeLx/jZRZ7BygZO."
         - "traefik.http.routers.traefik-https.middlewares=auth,ratelimit,secure-headers"
         # Security middleware
         - "traefik.http.middlewares.ratelimit.ratelimit.average=300"
