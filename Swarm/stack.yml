@@ -7,16 +7,19 @@ services:
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+      - "--providers.docker.exposedbydefault=false"
       - "--certificatesresolvers.le.acme.tlschallenge=true"
       - "--certificatesresolvers.le.acme.email=sacilotto.andre@gmail.com"
-      - "--certificatesresolvers.le.acme.storage=/home/ubuntu/config/acme.json"
+      - "--certificatesresolvers.le.acme.storage=/acme.json"
       - "--log.level=INFO"
+    environment:
+      - TOKEN=ab25d043-0943-4338-88c7-315b3973ca90
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "traefik-certificates:/home/ubuntu/config/acme.json"  
+      - "traefik-certificates:/home/ubuntu/acme.json"  
     networks:
       - backend_network
       - frontend_network
@@ -68,6 +71,8 @@ services:
       replicas: 1
       restart_policy:
         condition: any
+      labels:
+        - "traefik.enable=false"
     ports:
       - "5432:5432"
 
@@ -92,6 +97,8 @@ services:
       replicas: 1
       restart_policy:
         condition: any
+      labels:
+        - "traefik.enable=false"
     ports:
       - "5433:5432"
 
@@ -108,6 +115,8 @@ services:
         condition: any
     ports:
       - "6432:6432"
+    labels:
+      - "traefik.enable=false"
 
   backend:
     image: norohim/cp-planta-backend:latest
@@ -124,9 +133,13 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
+        # Main Backend Route
         - "traefik.http.routers.backend.entrypoints=websecure"
         - "traefik.http.routers.backend.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/backend`)"
         - "traefik.http.routers.backend.middlewares=backend-strip-prefix"
+        - "traefik.http.middlewares.backend-strip-prefix.stripPrefix.prefixes=/backend"
+        - "traefik.http.services.backend.loadbalancer.server.port=3000"
+        # Swagger Route for API Documentation
         - "traefik.http.routers.swagger.entrypoints=websecure"
         - "traefik.http.routers.swagger.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/backend/api`)"
         - "traefik.http.routers.swagger.middlewares=swagger-strip-prefix"
@@ -206,8 +219,6 @@ services:
       - /srv/gitlab-runner/config:/etc/gitlab-runner
     networks:
       - runner_network
-    ports:
-      - "2375:2375"
     deploy:
       mode: replicated
       replicas: 4
@@ -220,6 +231,8 @@ services:
           memory: "0.75G"
       restart_policy:
         condition: any
+      labels:
+        - "traefik.enable=false"
 
 networks:
   backend_network:
