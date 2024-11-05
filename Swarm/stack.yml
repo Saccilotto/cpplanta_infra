@@ -9,7 +9,7 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--certificatesresolvers.le.acme.tlschallenge=true"
       - "--certificatesresolvers.le.acme.email=sacilotto.andre@gmail.com"
-      - "--certificatesresolvers.le.acme.storage=/acme.json"
+      - "--certificatesresolvers.le.acme.storage=/config/acme.json"
       - "--log.level=INFO"
     ports:
       - "80:80"
