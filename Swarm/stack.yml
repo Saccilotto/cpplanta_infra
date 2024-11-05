@@ -9,14 +9,14 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--certificatesresolvers.le.acme.tlschallenge=true"
       - "--certificatesresolvers.le.acme.email=sacilotto.andre@gmail.com"
-      - "--certificatesresolvers.le.acme.storage=/config/acme.json"
+      - "--certificatesresolvers.le.acme.storage=/home/ubuntu/config/acme.json"
       - "--log.level=INFO"
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "traefik-certificates:/config/acme.json"  
+      - "traefik-certificates:/home/ubuntu/config/acme.json"  
     networks:
       - backend_network
       - frontend_network
@@ -210,8 +210,6 @@ services:
       - "2375:2375"
     deploy:
       mode: replicated
-      labels:
-       - "traefik.enable=false"
       replicas: 4
       resources:
         limits:
