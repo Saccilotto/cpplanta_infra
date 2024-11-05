@@ -13,7 +13,7 @@ services:
       - "--certificatesresolvers.le.acme.tlschallenge=true"
       - "--certificatesresolvers.le.acme.email=sacilotto.andre@gmail.com"
       - "--certificatesresolvers.le.acme.storage=/acme.json"
-      - "--log.level=INFO"
+      - "--log.level=DEBUG"
     environment:
       - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
       - DUCKDNS_SUBDOMAIN=${DUCKDNS_SUBDOMAIN}
@@ -37,26 +37,25 @@ services:
         condition: on-failure
       labels:
         - "traefik.enable=true"
-        # Roteador HTTP para redirecionamento
-        - "traefik.http.routers.traefik.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/traefik`)"
-        - "traefik.http.routers.traefik-http.entrypoints=web"
-        - "traefik.http.routers.traefik-http.middlewares=redirect-to-https"
+        # HTTP router to redirect all HTTP traffic to HTTPS
+        - "traefik.http.routers.http-cpplanta.rule=Host(`cpplanta.duckdns.org`)"
+        - "traefik.http.routers.http-cpplanta.entrypoints=web"
+        - "traefik.http.routers.http-cpplanta.middlewares=redirect-to-https"
         - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-        # Roteador HTTPS para o dashboard
-        - "traefik.http.routers.traefik-https.rule=Host(`cpplanta-traefik.duckdns.org`)"
-        - "traefik.http.routers.traefik.service=api@internal"
-        - "traefik.http.routers.traefik-https.entrypoints=websecure"
-        - "traefik.http.routers.traefik-https.service=api@internal"
+        # HTTPS router for dashboard access
+        - "traefik.http.routers.https-dashboard.rule=Host(`cpplanta-traefik.duckdns.org`) && PathPrefix(`/traefik`)"
+        - "traefik.http.routers.https-dashboard.entrypoints=websecure"
+        - "traefik.http.routers.https-dashboard.tls.certresolver=le"
+        - "traefik.http.routers.https-dashboard.service=api@internal"
+        - "traefik.http.routers.https-dashboard.middlewares=auth,secure-headers,ratelimit"
+        # Middleware for authentication and headers
         - "traefik.http.middlewares.auth.basicauth.users=trafico:$$apr1$$sPVjgY2d$$9zfYktoeLx/jZRZ7BygZO."
-        - "traefik.http.routers.traefik-https.middlewares=auth,ratelimit,secure-headers"
-        # Security middleware
+        - "traefik.http.middlewares.secure-headers.headers.stsSeconds=31536000"
+        - "traefik.http.middlewares.secure-headers.headers.browserXssFilter=true"
+        - "traefik.http.middlewares.secure-headers.headers.contentTypeNosniff=true"
+        - "traefik.http.middlewares.secure-headers.headers.frameDeny=true"
         - "traefik.http.middlewares.ratelimit.ratelimit.average=300"
         - "traefik.http.middlewares.ratelimit.ratelimit.burst=150"
-        # Security headers
-        - "traefik.http.middlewares.secure-headers.headers.stsSeconds=31536000"
-        - "traefik.http.middlewares.secure-headers.headers.frameDeny=true"
-        - "traefik.http.middlewares.secure-headers.headers.contentTypeNosniff=true"
-        - "traefik.http.middlewares.secure-headers.headers.browserXssFilter=true"
 
   postgres_primary:
     image: norohim/postgres-optimal:latest
@@ -76,7 +75,7 @@ services:
       replicas: 1
       restart_policy:
         condition: any
-      labels:
+      labels: 
         - "traefik.enable=false"
     ports:
       - "5432:5432"
@@ -118,10 +117,10 @@ services:
       replicas: 1
       restart_policy:
         condition: any
+      labels:
+        - "traefik.enable=false"
     ports:
       - "6432:6432"
-    labels:
-      - "traefik.enable=false"
 
   backend:
     image: norohim/cp-planta-backend:latest
@@ -239,8 +238,6 @@ services:
           memory: "0.75G"
       restart_policy:
         condition: any
-      labels:
-        - "traefik.enable=false"
 
 networks:
   backend_network:
