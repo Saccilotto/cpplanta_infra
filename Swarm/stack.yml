@@ -5,7 +5,6 @@ services:
       - "--api.dashboard=true"
       - "--api.insecure=false" 
       - "--providers.docker=true"
-      - "--providers.docker.swarmMode=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--certificatesresolvers.le.acme.tlschallenge=true"
@@ -17,15 +16,18 @@ services:
       - "443:443"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "traefik-certificates:/acme.json"
+      - "traefik-certificates:/config/acme.json"  
     networks:
       - backend_network
       - frontend_network
       - traefik_network
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
       restart_policy:
-        condition: unless-stopped
+        condition: on-failure
       labels:
         - "traefik.enable=true"
         # Roteador HTTP para redirecionamento
@@ -164,7 +166,7 @@ services:
   hoppscotch:
     image: hoppscotch/hoppscotch:latest
     volumes:
-      - ./config/hoppscotch:/app/config 
+      - hoppscotch_data:/root/.config/Hoppscotch
     networks:
       - backend_network
     deploy:
@@ -204,8 +206,12 @@ services:
       - /srv/gitlab-runner/config:/etc/gitlab-runner
     networks:
       - runner_network
+    ports:
+      - "2375:2375"
     deploy:
       mode: replicated
+      labels:
+       - "traefik.enable=false"
       replicas: 4
       resources:
         limits:
