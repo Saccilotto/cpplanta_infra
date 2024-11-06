@@ -8,18 +8,21 @@ services:
       - "--api.insecure=true" 
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
+      #- "--entrypoints.websecure.address=:443"
+      - "--providers.docker.swarmmode=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--certificatesresolvers.le.acme.dnschallenge=true"
-      - "--certificatesresolvers.le.acme.dnschallenge.provider=duckdns"
-      - "--certificatesresolvers.le.acme.email=andre.santos01@edu.pucrs.br"
-      - "--certificatesresolvers.le.acme.storage=/acme.json"
+      # - "--certificatesresolvers.le.acme.dnschallenge=true"
+      # - "--certificatesresolvers.le.acme.dnschallenge.provider=duckdns"
+      # - "--certificatesresolvers.le.acme.email=andre.santos01@edu.pucrs.br"
+      # - "--certificatesresolvers.le.acme.storage=/acme.json"
       - "--log.level=DEBUG"
     environment:
       - DUCKDNS_TOKEN=ab25d043-0943-4338-88c7-315b3973ca90
+      - "TZ=UTC"
+      - "RESOLVERS=8.8.8.8,1.1.1.1"
     ports:
       - "80:80"
-      - "443:443"
+      #- "443:443"
       - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -38,18 +41,18 @@ services:
       labels:
         - "traefik.enable=true"
         # HTTP router to redirect all HTTP traffic to HTTPS
-        - "traefik.http.routers.http-cpplanta.rule=Host(`cpplanta.duckdns.org`)"
-        - "traefik.http.routers.http-cpplanta.entrypoints=web"
-        - "traefik.http.routers.http-cpplanta.middlewares=redirect-to-https"
+        # - "traefik.http.routers.http-cpplanta.rule=Host(`cpplanta.duckdns.org`)"
+        #- "traefik.http.routers.http-cpplanta.middlewares=redirect-to-https"
         # HTTPS router for dashboard access
-        - "traefik.http.routers.https-dashboard.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/traefik`)"
-        - "traefik.http.routers.https-dashboard.entrypoints=websecure"
-        - "traefik.http.routers.https-dashboard.tls.certresolver=le"
+        - "traefik.http.routers.https-dashboard.rule=Host(`cpplanta.duckdns.org`) && Path(`/traefik`)"
+        - "traefik.http.routers.http-cpplanta.entrypoints=web"
+
+        # - "traefik.http.routers.https-dashboard.entrypoints=websecure"
+        #- "traefik.http.routers.https-dashboard.tls.certresolver=le"
         - "traefik.http.routers.https-dashboard.service=api@internal"
-        - "traefik.http.routers.https-dashboard.middlewares=dashboard-strip-prefix,auth,secure-headers,ratelimit"
-        # Middlewares for redirect and prefix stripping
-        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-        - "traefik.http.middlewares.dashboard-strip-prefix.stripPrefix.prefixes=/traefik"
+        - "traefik.http.routers.https-dashboard.middlewares=auth,secure-headers,ratelimit,"
+        # Middlewares for redirect and  stripping
+        #- "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
         # Middleware for authentication and headers
         - "traefik.http.middlewares.auth.basicauth.users=trafico:$$apr1$$sPVjgY2d$$9zfYktoeLx/jZRZ7BygZO."
         - "traefik.http.middlewares.secure-headers.headers.stsSeconds=31536000"
@@ -143,18 +146,11 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
-        # Main Backend Route
-        - "traefik.http.routers.backend.tls.certresolver=le"
-        - "traefik.http.routers.backend.entrypoints=websecure"
-        - "traefik.http.routers.backend.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/backend`)"
-        - "traefik.http.routers.backend.middlewares=backend-strip-prefix"
-        - "traefik.http.middlewares.backend-strip-prefix.stripPrefix.prefixes=/backend"
-        - "traefik.http.services.backend.loadbalancer.server.port=3000"
-        # Swagger Route for API Documentation
-        - "traefik.http.routers.swagger.entrypoints=websecure"
-        - "traefik.http.routers.swagger.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/backend/api`)"
-        - "traefik.http.routers.swagger.middlewares=swagger-strip-prefix"
-        - "traefik.http.middlewares.swagger-strip-prefix.stripPrefix.prefixes=/backend/api"
+        # Main Backend Route        # Swagger Route for API Documentation
+        #- "traefik.http.routers.swagger.tls.certresolver=le"
+        # - "traefik.http.routers.swagger.entrypoints=websecure"
+        - "traefik.http.routers.swagger.entrypoints=web"
+        - "traefik.http.routers.swagger.rule=Host(`cpplanta.duckdns.org`) && Path(`/backend/api`)"
         - "traefik.http.services.swagger.loadbalancer.server.port=3000"
       replicas: 1
       restart_policy:
@@ -162,12 +158,6 @@ services:
         
   pgadmin:
     image: norohim/pgadmin:latest
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
     environment:
       - PGADMIN_DEFAULT_EMAIL=fulano@gmail.com
       - PGADMIN_DEFAULT_PASSWORD=abc123
@@ -179,12 +169,11 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.pgadmin.entrypoints=websecure"
-        - "traefik.http.routers.pgadmin.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/database`)"
-        - "traefik.http.routers.pgadmin.middlewares=pgadmin-strip-prefix"
-        - "traefik.http.middlewares.pgadmin-strip-prefix.stripPrefix.prefixes=/database"
-        - "traefik.http.services.pgadmin.loadbalancer.server.port=80"
-        - "traefik.http.routers.pgadmin.tls.certresolver=le"
+        # - "traefik.http.routers.pgadmin.entrypoints=websecure"
+        - "traefik.http.routers.pgadmin.entrypoints=web"
+        - "traefik.http.routers.pgadmin.rule=Host(`cpplanta.duckdns.org`) && Path(`/database`)"
+        - "traefik.http.services.pgadmin.loadbalancer.server.port=81"
+        #- "traefik.http.routers.pgadmin.tls.certresolver=le"
       replicas: 1
       restart_policy:
         condition: any
@@ -201,12 +190,11 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.hoppscotch.entrypoints=websecure"
-        - "traefik.http.routers.hoppscotch.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/hoppscotch`)"
-        - "traefik.http.routers.hoppscotch.middlewares=hoppscotch-strip-prefix"
-        - "traefik.http.middlewares.hoppscotch-strip-prefix.stripPrefix.prefixes=/hoppscotch"
+        # - "traefik.http.routers.hoppscotch.entrypoints=websecure"
+        - "traefik.http.routers.hoppscotch.entrypoints=web"
+        - "traefik.http.routers.hoppscotch.rule=Host(`cpplanta.duckdns.org`) && Path(`/hoppscotch`)"
         - "traefik.http.services.hoppscotch.loadbalancer.server.port=4000"
-        - "traefik.http.routers.hoppscotch.tls.certresolver=le"
+        #- "traefik.http.routers.hoppscotch.tls.certresolver=le"
       replicas: 1
       restart_policy:
         condition: on-failure
@@ -222,12 +210,11 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.frontend.entrypoints=websecure"
-        - "traefik.http.routers.frontend.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/frontend`)"
-        - "traefik.http.routers.frontend.middlewares=frontend-strip-prefix"
-        - "traefik.http.middlewares.frontend-strip-prefix.stripPrefix.prefixes=/frontend"
+        # - "traefik.http.routers.frontend.entrypoints=websecure"
+        - "traefik.http.routers.frontend.entrypoints=web"
+        - "traefik.http.routers.frontend.rule=Host(`cpplanta.duckdns.org`) && Path(`/frontend/home`)"
         - "traefik.http.services.frontend.loadbalancer.server.port=3001"
-        - "traefik.http.routers.frontend.tls.certresolver=le"
+        # - "traefik.http.routers.frontend.tls.certresolver=le"
       replicas: 1
       restart_policy:
         condition: any
