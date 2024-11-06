@@ -17,15 +17,10 @@ services:
       - "--log.level=DEBUG"
     environment:
       - DUCKDNS_TOKEN=ab25d043-0943-4338-88c7-315b3973ca90
-      - DUCKDNS_SUBDOMAIN=cpplanta
-      - DUCKDNS_EMAIL=andre.santos01@edu.pucrs.br
     ports:
       - "80:80"
       - "443:443"
       - "8080:8080"
-      - "3000:3000"
-      - "3001:3001"
-      - "4000:4000"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./traefik/acme.json:/acme.json"  
@@ -46,14 +41,15 @@ services:
         - "traefik.http.routers.http-cpplanta.rule=Host(`cpplanta.duckdns.org`)"
         - "traefik.http.routers.http-cpplanta.entrypoints=web"
         - "traefik.http.routers.http-cpplanta.middlewares=redirect-to-https"
-        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
         # HTTPS router for dashboard access
         - "traefik.http.routers.https-dashboard.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/traefik`)"
         - "traefik.http.routers.https-dashboard.entrypoints=websecure"
         - "traefik.http.routers.https-dashboard.tls.certresolver=le"
         - "traefik.http.routers.https-dashboard.service=api@internal"
+        - "traefik.http.routers.https-dashboard.middlewares=dashboard-strip-prefix,auth,secure-headers,ratelimit"
+        # Middlewares for redirect and prefix stripping
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
         - "traefik.http.middlewares.dashboard-strip-prefix.stripPrefix.prefixes=/traefik"
-        - "traefik.http.routers.https-dashboard.middlewares=dashboard-strip-prefix"
         # Middleware for authentication and headers
         - "traefik.http.middlewares.auth.basicauth.users=trafico:$$apr1$$sPVjgY2d$$9zfYktoeLx/jZRZ7BygZO."
         - "traefik.http.middlewares.secure-headers.headers.stsSeconds=31536000"
