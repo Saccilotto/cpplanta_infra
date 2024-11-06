@@ -152,6 +152,8 @@ services:
         - "traefik.http.routers.swagger.entrypoints=web"
         - "traefik.http.routers.swagger.rule=Host(`cpplanta.duckdns.org`) && Path(`/backend/api`)"
         - "traefik.http.services.swagger.loadbalancer.server.port=3000"
+      ports:
+        - "3000:3000"
       replicas: 1
       restart_policy:
         condition: any
@@ -195,6 +197,8 @@ services:
         - "traefik.http.routers.hoppscotch.rule=Host(`cpplanta.duckdns.org`) && Path(`/hoppscotch`)"
         - "traefik.http.services.hoppscotch.loadbalancer.server.port=4000"
         #- "traefik.http.routers.hoppscotch.tls.certresolver=le"
+      ports: 
+        - "4000:4000"
       replicas: 1
       restart_policy:
         condition: on-failure
@@ -215,6 +219,8 @@ services:
         - "traefik.http.routers.frontend.rule=Host(`cpplanta.duckdns.org`) && Path(`/frontend/home`)"
         - "traefik.http.services.frontend.loadbalancer.server.port=3001"
         # - "traefik.http.routers.frontend.tls.certresolver=le"
+      ports:
+        - "3001:3001"
       replicas: 1
       restart_policy:
         condition: any
