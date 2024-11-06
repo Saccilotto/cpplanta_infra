@@ -46,7 +46,6 @@ services:
         # HTTPS router for dashboard access
         - "traefik.http.routers.https-dashboard.rule=Host(`cpplanta.duckdns.org`) && Path(`/traefik`)"
         - "traefik.http.routers.http-cpplanta.entrypoints=web"
-
         # - "traefik.http.routers.https-dashboard.entrypoints=websecure"
         #- "traefik.http.routers.https-dashboard.tls.certresolver=le"
         - "traefik.http.routers.https-dashboard.service=api@internal"
@@ -150,7 +149,7 @@ services:
         #- "traefik.http.routers.swagger.tls.certresolver=le"
         # - "traefik.http.routers.swagger.entrypoints=websecure"
         - "traefik.http.routers.swagger.entrypoints=web"
-        - "traefik.http.routers.swagger.rule=Host(`cpplanta.duckdns.org`) && Path(`/backend/api`)"
+        - "traefik.http.routers.swagger.rule=Host(`cpplanta.duckdns.org`) && Path(`/backend`)"
         - "traefik.http.services.swagger.loadbalancer.server.port=3000"
       ports:
         - "3000:3000"
@@ -216,7 +215,7 @@ services:
         - "traefik.enable=true"
         # - "traefik.http.routers.frontend.entrypoints=websecure"
         - "traefik.http.routers.frontend.entrypoints=web"
-        - "traefik.http.routers.frontend.rule=Host(`cpplanta.duckdns.org`) && Path(`/frontend/home`)"
+        - "traefik.http.routers.frontend.rule=Host(`cpplanta.duckdns.org`) && Path(`/frontend`)"
         - "traefik.http.services.frontend.loadbalancer.server.port=3001"
         # - "traefik.http.routers.frontend.tls.certresolver=le"
       ports:
