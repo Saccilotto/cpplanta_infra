@@ -44,7 +44,7 @@ services:
         # - "traefik.http.routers.http-cpplanta.rule=Host(`cpplanta.duckdns.org`)"
         #- "traefik.http.routers.http-cpplanta.middlewares=redirect-to-https"
         # HTTPS router for dashboard access
-        - "traefik.http.routers.https-dashboard.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/dashboard/#`)"
+        - "traefik.http.routers.https-dashboard.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/dashboard`)"
         - "traefik.http.routers.http-cpplanta.entrypoints=web"
         # - "traefik.http.routers.https-dashboard.entrypoints=websecure"
         #- "traefik.http.routers.https-dashboard.tls.certresolver=le"
@@ -172,7 +172,7 @@ services:
         - "traefik.enable=true"
         # - "traefik.http.routers.pgadmin.entrypoints=websecure"
         - "traefik.http.routers.pgadmin.entrypoints=web"
-        - "traefik.http.routers.pgadmin.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/`)"
+        - "traefik.http.routers.pgadmin.rule=Host(`cpplanta.duckdns.org`) && PathPrefix(`/login`)"
         - "traefik.http.services.pgadmin.loadbalancer.server.port=5050"
         #- "traefik.http.routers.pgadmin.tls.certresolver=le"
       replicas: 1
