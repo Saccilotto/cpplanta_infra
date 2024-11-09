@@ -7,7 +7,7 @@ services:
       - "--api.dashboard=true"
       - "--api.insecure=true" 
       - "--providers.docker=true"
-      - "--entrypoints.web.address=:80"
+      #- "--entrypoints.web.address=:80"
       - "--entrypoints.web.address=:8080"
       #- "--entrypoints.websecure.address=:443"
       - "--providers.docker.swarmmode=true"
@@ -21,7 +21,7 @@ services:
       - DUCKDNS_TOKEN=ab25d043-0943-4338-88c7-315b3973ca90
     ports:
       #- "443:443"
-      - "80:80"
+      #- "80:80"
       - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
