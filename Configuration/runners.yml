@@ -14,7 +14,6 @@
       - "runner-1-{{ inventory_hostname }}"
       - "runner-2-{{ inventory_hostname }}"
       - "runner-3-{{ inventory_hostname }}"
-      - "runner-4-{{ inventory_hostname }}"
 
   tasks:
     - name: Ensure gitlab-runner group exists
